@@ -1,257 +1,2138 @@
 import requests
 import pandas as pd
+import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from datetime import datetime, timedelta
 
-# 1. INITIALISATION DE LA PAGE
-st.set_page_config(page_title="Terminal Crypto Global Pro", layout="wide")
-st.title("🛡️ Terminal Crypto Professionnel - Vision Globale & Confluence")
+# ══════════════════════════════════════════════════════════════════════════════
+# 1. INITIALISATION
+# ══════════════════════════════════════════════════════════════════════════════
+st.set_page_config(page_title="Terminal Crypto Pro v2", layout="wide")
+st.title("🛡️ Terminal Crypto Professionnel v2 — Confluence Multi-Dimensionnelle")
 
-# --- REPERTOIRE FONDAMENTAL AVEC ANCRES D'ACTUALITÉS INVIOLABLES ---
+# ══════════════════════════════════════════════════════════════════════════════
+# 2. RÉPERTOIRE FONDAMENTAL ÉTENDU
+# ══════════════════════════════════════════════════════════════════════════════
 repo_fondamental = {
     "Bitcoin (BTC)": {
-        "tokenomics": "**Offre bloquée à 21M**. Actif déflationniste par nature. Plus de 94% des jetons sont déjà en circulation.",
-        "roadmap": "Halving prévu en 2028 (réduction de l'émission à 1.56 BTC/bloc). Développement des protocoles de scalabilité (Lightning Network).",
-        "sensibilite": "Or numérique. Très sensible aux politiques de taux d'intérêt de la Fed et à la liquidité mondiale.",
+        "coingecko_id": "bitcoin",
+        "contract_mult": 1,
+        "index_id": "BTC",
+        "tokenomics": "**Offre plafonnée à 21M**. Actif déflationniste. >94% en circulation. Émission divisée par 2 tous les ~4 ans (halving).",
+        "roadmap": "Prochain halving en 2028 (1.56 BTC/bloc). Lightning Network pour la scalabilité. Adoption institutionnelle via ETF Spot.",
+        "sensibilite": "Or numérique. Très corrélé à la liquidité mondiale (M2), inversement corrélé au DXY et aux taux réels US.",
         "ticker_news": "BTC",
         "lien_x": "https://x.com/Bitcoin",
         "fallback_news": [
-            {
-                "title": "Flux Institutionnels : Suivi des flux nets sur les ETF Bitcoin Spot", 
-                "body": "Consultez les volumes d'achat quotidiens, les entrées/sorties de capitaux des fonds de gestion et les positions des institutionnels.",
-                "url": "https://coinmarketcap.com/currencies/bitcoin/#News"
-            },
-            {
-                "title": "Analyse de Cycle : Métriques de marché et actualités du BTC", 
-                "body": "Accédez au flux d'actualités continues compilé par CoinDesk pour analyser les mouvements des portefeuilles à long terme.",
-                "url": "https://www.coindesk.com/price/bitcoin/"
-            }
+            {"title": "Whitepaper de Satoshi Nakamoto", "body": "Document fondateur décrivant le réseau pair-à-pair.", "url": "https://bitcoin.org/bitcoin.pdf"},
+            {"title": "Thèse d'Investissement BTC", "body": "Analyse des cycles de liquidité et réserve de valeur.", "url": "https://www.coindesk.com/learn/what-is-bitcoin-the-ultimate-guide/"}
         ]
     },
     "Ethereum (ETH)": {
-        "tokenomics": "Offre dynamique avec mécanisme de destruction ('burn') partiel des frais de réseau en fonction de l'activité.",
-        "roadmap": "Phase 'The Surge' en cours (optimisation des Layer 2 pour atteindre plus de 100 000 transactions par seconde).",
-        "sensibilite": "Actif de croissance technologique. Fortement lié à l'écosystème de la DeFi et des Smart Contracts.",
+        "coingecko_id": "ethereum",
+        "contract_mult": 1,
+        "index_id": "ETH",
+        "tokenomics": "Offre dynamique avec burn EIP-1559. Peut devenir déflationniste en période de forte activité réseau.",
+        "roadmap": "Phase 'The Surge' : optimisation L2 pour >100k TPS. Proto-danksharding (EIP-4844) actif.",
+        "sensibilite": "Actif de croissance tech. Corrélé au BTC mais amplifié. TVL DeFi et volumes NFT comme catalyseurs.",
         "ticker_news": "ETH",
         "lien_x": "https://x.com/ethereum",
         "fallback_news": [
-            {
-                "title": "Scalabilité technique : Activité et frais sur les réseaux Layer 2", 
-                "body": "Suivez l'évolution technique des chaînes secondaires (Arbitrum, Optimism, Base) et l'adoption des solutions de mise à l'échelle.",
-                "url": "https://coinmarketcap.com/currencies/ethereum/#News"
-            },
-            {
-                "title": "Finance Décentralisée : Volumes totaux verrouillés (TVL) et Staking", 
-                "body": "Consultez les flux d'informations sur les smart contracts, la gouvernance et le rendement du staking institutionnel.",
-                "url": "https://www.coindesk.com/price/ethereum/"
-            }
+            {"title": "Whitepaper Ethereum", "body": "Fonctionnement de l'EVM et des smart contracts.", "url": "https://ethereum.org/en/whitepaper/"},
+            {"title": "Roadmap Ethereum", "body": "The Merge, Surge, Scourge et mise à l'échelle.", "url": "https://www.coindesk.com/learn/what-is-ethereum/"}
         ]
     },
     "Solana (SOL)": {
-        "tokenomics": "Inflation initiale décroissante stabilisée à 1.5% à long terme. 50% de chaque frais de transaction est détruit.",
-        "roadmap": "Déploiement final du client de validation indépendant 'Firedancer' pour éliminer définitivement les pannes.",
-        "sensibilite": "Actif à haut bêta (très volatil). Fortement dépendant de l'engouement du grand public et des volumes spéculatifs.",
+        "coingecko_id": "solana",
+        "contract_mult": 1,
+        "index_id": "SOL",
+        "tokenomics": "Inflation décroissante vers 1.5%. 50% des frais de transaction brûlés. Staking yield ~7%.",
+        "roadmap": "Client Firedancer (Jump Crypto) pour éliminer les pannes. Compression d'état pour réduire les coûts.",
+        "sensibilite": "Actif à haut bêta. Très sensible au sentiment retail et aux volumes spéculatifs (memecoins).",
         "ticker_news": "SOL",
         "lien_x": "https://x.com/solana",
         "fallback_news": [
-            {
-                "title": "Infrastructure Firedancer : Rapport de mise à niveau des validateurs", 
-                "body": "Suivez le taux de déploiement du second validateur développé par Jump Crypto conçu pour maximiser le débit du réseau.",
-                "url": "https://coinmarketcap.com/currencies/solana/#News"
-            },
-            {
-                "title": "Activité Spéculative : Volumes d'échanges sur les DEX de Solana", 
-                "body": "Suivez la création de liquidité brute et les volumes générés par les utilisateurs au jour le jour sur l'écosystème.",
-                "url": "https://www.coindesk.com/price/solana/"
-            }
+            {"title": "Whitepaper Proof-of-History", "body": "Synchronisation des horloges pour la vitesse réseau.", "url": "https://solana.com/solana-whitepaper.pdf"},
+            {"title": "Architecture Solana", "body": "Transactions, frais et décentralisation.", "url": "https://www.coindesk.com/learn/what-is-solana/"}
+        ]
+    },
+    "Chainlink (LINK)": {
+        "coingecko_id": "chainlink",
+        "contract_mult": 1,
+        "index_id": "LINK",
+        "tokenomics": "Offre fixe de 1Md de LINK. ~60% en circulation. Utilisation pour payer les services d'oracles.",
+        "roadmap": "CCIP (Cross-Chain Interoperability Protocol) en expansion. Staking v0.2 avec slashing.",
+        "sensibilite": "Infrastructure DeFi. Bêta moyen. Catalyseurs : nouveaux partenariats, intégrations CCIP, adoption institutionnelle.",
+        "ticker_news": "LINK",
+        "lien_x": "https://x.com/chainlink",
+        "fallback_news": [
+            {"title": "Whitepaper Chainlink", "body": "Réseau d'oracles décentralisé.", "url": "https://chain.link/whitepaper"},
+            {"title": "CCIP Protocol", "body": "Interopérabilité cross-chain.", "url": "https://chain.link/cross-chain"}
+        ]
+    },
+    "Avalanche (AVAX)": {
+        "coingecko_id": "avalanche-2",
+        "contract_mult": 1,
+        "index_id": "AVAX",
+        "tokenomics": "Offre plafonnée à 720M. Frais brûlés intégralement. Staking yield ~8%.",
+        "roadmap": "Subnets personnalisables. Avalanche9000 (réduction des coûts). Adoption gaming et RWA.",
+        "sensibilite": "Concurrent L1. Bêta élevé. Sensible à l'activité des subnets et aux partenariats institutionnels.",
+        "ticker_news": "AVAX",
+        "lien_x": "https://x.com/avaborneofficial",
+        "fallback_news": [
+            {"title": "Whitepaper Avalanche", "body": "Consensus Snow et architecture multi-chain.", "url": "https://www.avax.network/whitepapers"},
+            {"title": "Subnets Avalanche", "body": "Blockchains personnalisées.", "url": "https://www.coindesk.com/learn/what-is-avalanche/"}
+        ]
+    },
+    "Hyperliquid (HYPE)": {
+        "coingecko_id": "hyperliquid",
+        "contract_mult": 1,
+        "index_id": "HYPE",
+        "tokenomics": "Offre max 1Md. Rachats et burn agressifs financés par les revenus du DEX (circulation passée sous 300M). Pas de capital-risque early extractif.",
+        "roadmap": "L1 perpétuels on-chain (200k ordres/s) + HyperEVM. Expansion vers spot, lending, RWA. Recherche de clarté réglementaire US sur les perp.",
+        "sensibilite": "Token de DEX à fort bêta. Très lié aux revenus de la plateforme et aux volumes de trading de dérivés. Sensible au narratif 'perp DEX'.",
+        "ticker_news": "HYPE",
+        "lien_x": "https://x.com/HyperliquidX",
+        "fallback_news": [
+            {"title": "Hyperliquid Docs", "body": "Architecture HyperBFT et L1 perpétuels.", "url": "https://hyperliquid.gitbook.io/hyperliquid-docs"},
+            {"title": "Hyperliquid sur CoinGecko", "body": "Données de marché et écosystème.", "url": "https://www.coingecko.com/en/coins/hyperliquid"}
+        ]
+    },
+    "Jupiter (JUP)": {
+        "coingecko_id": "jupiter-exchange-solana",
+        "contract_mult": 1,
+        "index_id": "JUP",
+        "tokenomics": "Token de gouvernance du 1er agrégateur DEX de Solana. Politique de rachat : 50% des frais protocole rachètent et bloquent du JUP pendant 3 ans.",
+        "roadmap": "Expansion produit : Jupiter Lend, Ultra V3, vérification de tokens. >50% du volume DEX Solana. Devenu 2e validateur du réseau.",
+        "sensibilite": "Proxy de l'activité DeFi sur Solana. Corrélé à SOL et aux volumes de swap/perp. Bêta élevé.",
+        "ticker_news": "JUP",
+        "lien_x": "https://x.com/JupiterExchange",
+        "fallback_news": [
+            {"title": "Jupiter Station", "body": "Documentation et produits Jupiter.", "url": "https://station.jup.ag/"},
+            {"title": "Jupiter sur CoinGecko", "body": "Données de marché JUP.", "url": "https://www.coingecko.com/en/coins/jupiter"}
+        ]
+    },
+    "Aave (AAVE)": {
+        "coingecko_id": "aave",
+        "contract_mult": 1,
+        "index_id": "AAVE",
+        "tokenomics": "Offre max 16M. Token de gouvernance + 'safety module' (staking qui assure le protocole). Rachats activés via les revenus du protocole.",
+        "roadmap": "Aave V4 (architecture unifiée de liquidité). GHO (stablecoin natif). Expansion multi-chain. Leader du lending DeFi par TVL.",
+        "sensibilite": "Blue chip DeFi. Corrélé à l'ETH et à la TVL DeFi globale. Bêta modéré pour un altcoin.",
+        "ticker_news": "AAVE",
+        "lien_x": "https://x.com/aave",
+        "fallback_news": [
+            {"title": "Aave Docs", "body": "Protocole de prêt décentralisé.", "url": "https://docs.aave.com/"},
+            {"title": "Aave sur CoinGecko", "body": "Données de marché AAVE.", "url": "https://www.coingecko.com/en/coins/aave"}
+        ]
+    },
+    "Polygon (POL)": {
+        "coingecko_id": "polygon-ecosystem-token",
+        "contract_mult": 1,
+        "index_id": "POL",
+        "tokenomics": "Token de nouvelle génération (ex-MATIC). Offre 10Md, légèrement inflationniste. Re-staking natif : sécuriser plusieurs chaînes ZK avec un seul token.",
+        "roadmap": "AggLayer (couche d'agrégation cross-chain ZK). Migration MATIC→POL finalisée. Focus sur les paiements et les RWA.",
+        "sensibilite": "Infrastructure L2 Ethereum. Corrélé à l'adoption des rollups et à l'ETH. Concurrence forte (Arbitrum, Base).",
+        "ticker_news": "POL",
+        "lien_x": "https://x.com/0xPolygon",
+        "fallback_news": [
+            {"title": "Polygon Docs", "body": "AggLayer et chaînes ZK.", "url": "https://docs.polygon.technology/"},
+            {"title": "Polygon sur CoinGecko", "body": "Données de marché POL.", "url": "https://www.coingecko.com/en/coins/polygon-ecosystem-token"}
+        ]
+    },
+    "Lido DAO (LDO)": {
+        "coingecko_id": "lido-dao",
+        "contract_mult": 1,
+        "index_id": "LDO",
+        "tokenomics": "Token de gouvernance du plus gros protocole de liquid staking ETH. Offre 1Md. La valeur dépend des frais prélevés sur les récompenses de staking.",
+        "roadmap": "Maintien de la position dominante sur le staking ETH (stETH). Diversification des validateurs. Enjeux de décentralisation.",
+        "sensibilite": "Proxy du staking Ethereum. Très corrélé à l'ETH et aux flux de staking. Sensible aux débats réglementaires sur le staking.",
+        "ticker_news": "LDO",
+        "lien_x": "https://x.com/LidoFinance",
+        "fallback_news": [
+            {"title": "Lido Docs", "body": "Liquid staking Ethereum.", "url": "https://docs.lido.fi/"},
+            {"title": "Lido sur CoinGecko", "body": "Données de marché LDO.", "url": "https://www.coingecko.com/en/coins/lido-dao"}
+        ]
+    },
+    "Fetch.ai (FET)": {
+        "coingecko_id": "fetch-ai",
+        "contract_mult": 1,
+        "index_id": "FET",
+        "tokenomics": "Token de l'Artificial Superintelligence Alliance (fusion Fetch.ai, SingularityNET, Ocean). Utilisé pour les agents IA autonomes et l'accès aux services du réseau.",
+        "roadmap": "Construction d'une plateforme d'agents IA décentralisés. Fusion ASI en cours d'intégration des écosystèmes.",
+        "sensibilite": "Token thématique 'IA + crypto'. Très spéculatif, fort bêta. Réagit aux narratifs IA (annonces OpenAI, Nvidia, etc.).",
+        "ticker_news": "FET",
+        "lien_x": "https://x.com/Fetch_ai",
+        "fallback_news": [
+            {"title": "Fetch.ai Docs", "body": "Agents IA autonomes décentralisés.", "url": "https://fetch.ai/docs"},
+            {"title": "Fetch.ai sur CoinGecko", "body": "Données de marché FET.", "url": "https://www.coingecko.com/en/coins/fetch-ai"}
+        ]
+    },
+    "Arbitrum (ARB)": {
+        "coingecko_id": "arbitrum",
+        "contract_mult": 1,
+        "index_id": "ARB",
+        "tokenomics": "Token de gouvernance du principal rollup optimiste d'Ethereum. Offre 10Md avec déblocages programmés (attention à la dilution).",
+        "roadmap": "Stylus (smart contracts multi-langages). Orbit (chaînes L3 personnalisées). Maintien du leadership TVL sur les L2.",
+        "sensibilite": "Infrastructure L2 Ethereum. Corrélé à l'ETH et à l'activité DeFi. Sensible aux déblocages de tokens (vesting).",
+        "ticker_news": "ARB",
+        "lien_x": "https://x.com/arbitrum",
+        "fallback_news": [
+            {"title": "Arbitrum Docs", "body": "Rollup optimiste Ethereum.", "url": "https://docs.arbitrum.io/"},
+            {"title": "Arbitrum sur CoinGecko", "body": "Données de marché ARB.", "url": "https://www.coingecko.com/en/coins/arbitrum"}
+        ]
+    },
+    "NEAR Protocol (NEAR)": {
+        "coingecko_id": "near",
+        "contract_mult": 1,
+        "index_id": "NEAR",
+        "tokenomics": "L1 avec sharding (Nightshade). Inflation ~5%, 70% des frais brûlés. Staking yield significatif.",
+        "roadmap": "Positionnement comme couche d'abstraction de chaînes + infrastructure pour l'IA décentralisée. Chain Signatures (contrôle cross-chain).",
+        "sensibilite": "L1 alternatif à fort bêta. Réagit aux narratifs IA et abstraction de compte. Corrélé au sentiment altcoin global.",
+        "ticker_news": "NEAR",
+        "lien_x": "https://x.com/NEARProtocol",
+        "fallback_news": [
+            {"title": "NEAR Docs", "body": "L1 à sharding et abstraction de chaînes.", "url": "https://docs.near.org/"},
+            {"title": "NEAR sur CoinGecko", "body": "Données de marché NEAR.", "url": "https://www.coingecko.com/en/coins/near"}
+        ]
+    },
+    "Sui (SUI)": {
+        "coingecko_id": "sui",
+        "contract_mult": 1,
+        "index_id": "SUI",
+        "tokenomics": "L1 utilisant le langage Move (ex-équipe Meta/Diem). Offre max 10Md avec déblocages. Staking et frais de gas en SUI.",
+        "roadmap": "Exécution parallèle pour haut débit. Focus gaming, DeFi et objets on-chain. Écosystème en croissance rapide.",
+        "sensibilite": "L1 récent à très fort bêta. Très spéculatif, sensible aux déblocages de tokens et au narratif 'Solana killer'.",
+        "ticker_news": "SUI",
+        "lien_x": "https://x.com/SuiNetwork",
+        "fallback_news": [
+            {"title": "Sui Docs", "body": "L1 à langage Move et exécution parallèle.", "url": "https://docs.sui.io/"},
+            {"title": "Sui sur CoinGecko", "body": "Données de marché SUI.", "url": "https://www.coingecko.com/en/coins/sui"}
         ]
     }
 }
 
-# --- FONCTIONS DE MISE EN CACHE PROTECTRICES ---
-@st.cache_data(ttl=60)
-def charger_donnees_prix(symbole):
-    url = f"https://api.binance.com/api/v3/klines?symbol={symbole}&interval=1d&limit=200"
-    reponse = requests.get(url).json()
-    colonnes = ['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close_time', 'Quote_volume', 'Trades', 'Bids', 'Asks', 'Ignore']
-    df = pd.DataFrame(reponse, columns=colonnes)
-    df['Date'] = pd.to_datetime(df['Timestamp'], unit='ms')
-    df = df[['Date', 'Open', 'High', 'Low', 'Close', 'Volume']]
-    for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
-        df[col] = pd.to_numeric(df[col])
-    return df
+options_cryptos = {
+    "Bitcoin (BTC)": "BTCUSDT",
+    "Ethereum (ETH)": "ETHUSDT",
+    "Solana (SOL)": "SOLUSDT",
+    "Chainlink (LINK)": "LINKUSDT",
+    "Avalanche (AVAX)": "AVAXUSDT",
+    "Hyperliquid (HYPE)": "HYPEUSDT",
+    "Jupiter (JUP)": "JUPUSDT",
+    "Aave (AAVE)": "AAVEUSDT",
+    "Polygon (POL)": "POLUSDT",
+    "Lido DAO (LDO)": "LDOUSDT",
+    "Fetch.ai (FET)": "FETUSDT",
+    "Arbitrum (ARB)": "ARBUSDT",
+    "NEAR Protocol (NEAR)": "NEARUSDT",
+    "Sui (SUI)": "SUIUSDT",
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 2bis. LIENS D'ANALYSE ON-CHAIN PAR ACTIF
+# ══════════════════════════════════════════════════════════════════════════════
+# DefiLlama : page protocole (pour les apps) ou page chaîne (pour les L1/L2).
+# Le revenu et la TVL sont les signaux les plus honnêtes : le capital suit les
+# revenus, pas les narratifs.
+# ══════════════════════════════════════════════════════════════════════════════
+# LISTE DE SUIVI — pilotée par `portfolio.csv` à la racine du repo.
+# Colonnes attendues : ticker,statut,quantite,prix_moyen,note
+# statut : detenu | surveillance | sorti | (vide = ignoré)
+# Si le CSV est absent ou illisible, on retombe sur SUIVI_DEFAUT ci-dessous.
+SUIVI_DEFAUT = {
+    "Bitcoin (BTC)":        "detenu",
+    "Ethereum (ETH)":       "detenu",
+    "Solana (SOL)":         "detenu",
+    "Jupiter (JUP)":        "detenu",
+    "Arbitrum (ARB)":       "detenu",
+    "NEAR Protocol (NEAR)": "detenu",
+    "Hyperliquid (HYPE)":   "sorti",
+    "Chainlink (LINK)":     "surveillance",
+    "Aave (AAVE)":          "surveillance",
+    "Sui (SUI)":            "surveillance",
+    "Avalanche (AVAX)":     "",
+    "Polygon (POL)":        "",
+    "Lido DAO (LDO)":       "",
+    "Fetch.ai (FET)":       "",
+}
+
+
+@st.cache_data(ttl=120)
+def charger_portfolio_csv():
+    """Lit portfolio.csv à la racine. Retourne (dict_statuts, dict_details, source)."""
+    import os
+    chemin = "portfolio.csv"
+    if not os.path.exists(chemin):
+        return SUIVI_DEFAUT.copy(), {}, "defaut"
+    try:
+        dfp = pd.read_csv(chemin)
+        dfp.columns = [c.strip().lower() for c in dfp.columns]
+        if 'ticker' not in dfp.columns:
+            return SUIVI_DEFAUT.copy(), {}, "defaut"
+        # ticker → nom affiché dans l'app
+        ticker_vers_nom = {f['ticker_news']: nom for nom, f in repo_fondamental.items()}
+        statuts, details = {}, {}
+        for _, r in dfp.iterrows():
+            tk = str(r['ticker']).strip().upper()
+            nom = ticker_vers_nom.get(tk)
+            if not nom:
+                continue  # actif non couvert par le terminal
+            statuts[nom] = str(r.get('statut', '')).strip().lower()
+            if statuts[nom] in ('nan', 'none'):
+                statuts[nom] = ''
+            details[nom] = {
+                "quantite": pd.to_numeric(r.get('quantite'), errors='coerce'),
+                "prix_moyen": pd.to_numeric(r.get('prix_moyen'), errors='coerce'),
+                "note": str(r.get('note', '')) if pd.notna(r.get('note')) else "",
+            }
+        # Les actifs du terminal absents du CSV sont simplement ignorés
+        for nom in repo_fondamental:
+            statuts.setdefault(nom, "")
+        return statuts, details, "csv"
+    except Exception:
+        return SUIVI_DEFAUT.copy(), {}, "defaut"
+
+
+SUIVI, SUIVI_DETAILS, SUIVI_SOURCE = charger_portfolio_csv()
+
+STATUT_LABEL = {
+    "detenu":       ("💼", "Détenu"),
+    "surveillance": ("👀", "Surveillance"),
+    "sorti":        ("✅", "Sorti"),
+    "":             ("·", "—"),
+}
+
+liens_defillama = {
+    "BTC":  "https://defillama.com/chain/Bitcoin",
+    "ETH":  "https://defillama.com/chain/Ethereum",
+    "SOL":  "https://defillama.com/chain/Solana",
+    "LINK": "https://defillama.com/oracles/Chainlink",
+    "AVAX": "https://defillama.com/chain/Avalanche",
+    "HYPE": "https://defillama.com/protocol/hyperliquid",
+    "JUP":  "https://defillama.com/protocol/jupiter-aggregator",
+    "AAVE": "https://defillama.com/protocol/aave",
+    "POL":  "https://defillama.com/chain/Polygon",
+    "LDO":  "https://defillama.com/protocol/lido",
+    "FET":  "https://defillama.com/chain/Fetchai",
+    "ARB":  "https://defillama.com/chain/Arbitrum",
+    "NEAR": "https://defillama.com/chain/Near",
+    "SUI":  "https://defillama.com/chain/Sui",
+}
+
+# Dashboards spécifiques à un écosystème (positions publiques, analytics dédiés)
+liens_specifiques = {
+    "HYPE": [
+        ("HypurrScan — holders & on-chain", "https://hypurrscan.io/"),
+        ("ASXN — dashboards Hyperliquid", "https://data.asxn.xyz/dashboard/hyperliquid-overview"),
+        ("Hyperdash — positions des whales", "https://hyperdash.info/"),
+    ],
+    "JUP": [
+        ("Jupiter — stats officielles", "https://jup.ag/"),
+        ("DefiLlama — Solana DEX", "https://defillama.com/dexs/chain/solana"),
+    ],
+    "SOL": [
+        ("DefiLlama — Solana DEX", "https://defillama.com/dexs/chain/solana"),
+        ("Solscan — explorateur", "https://solscan.io/"),
+    ],
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 3. FONCTIONS DE CHARGEMENT SÉCURISÉES
+# ══════════════════════════════════════════════════════════════════════════════
+
+@st.cache_data(ttl=300)
+def charger_donnees_prix(coingecko_id, ticker_cc=None):
+    """Charge 365 vraies bougies JOURNALIÈRES via CryptoCompare (priorité),
+    fallback CoinGecko si CryptoCompare échoue.
+    ticker_cc : ticker CryptoCompare (ex: 'BTC', 'ETH'). Si None, on tente seulement CoinGecko.
+    """
+    # ── Source 1 : CryptoCompare histoday (365 vraies bougies J) ──
+    if ticker_cc:
+        try:
+            url = (f"https://min-api.cryptocompare.com/data/v2/histoday"
+                   f"?fsym={ticker_cc}&tsym=USD&limit=365")
+            rep = requests.get(url, timeout=12).json()
+            data = rep.get('Data', {}).get('Data', [])
+            if data and len(data) >= 200:
+                df = pd.DataFrame(data)
+                df['Date'] = pd.to_datetime(df['time'], unit='s')
+                df = df.rename(columns={
+                    'open': 'Open', 'high': 'High', 'low': 'Low', 'close': 'Close',
+                    'volumefrom': 'Volume', 'volumeto': 'Quote_volume'
+                })
+                df['Trades'] = 0
+                df = df[['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Quote_volume', 'Trades']].copy()
+                for col in ['Open', 'High', 'Low', 'Close', 'Volume', 'Quote_volume']:
+                    df[col] = pd.to_numeric(df[col])
+                return df.reset_index(drop=True)
+        except Exception:
+            pass
+
+    # ── Source 2 : CoinGecko OHLC (fallback, granularité 4j sur 365 jours) ──
+    try:
+        jours = 365
+        url = f"https://api.coingecko.com/api/v3/coins/{coingecko_id}/ohlc?vs_currency=usd&days={jours}"
+        rep = requests.get(url, timeout=12)
+        rep.raise_for_status()
+        data = rep.json()
+        df = pd.DataFrame(data, columns=['Timestamp', 'Open', 'High', 'Low', 'Close'])
+        df['Date'] = pd.to_datetime(df['Timestamp'], unit='ms')
+        for col in ['Open', 'High', 'Low', 'Close']:
+            df[col] = pd.to_numeric(df[col])
+        url_vol = f"https://api.coingecko.com/api/v3/coins/{coingecko_id}/market_chart?vs_currency=usd&days={jours}&interval=daily"
+        rep_vol = requests.get(url_vol, timeout=12).json()
+        volumes = rep_vol.get('total_volumes', [])
+        df_vol = pd.DataFrame(volumes, columns=['Timestamp_v', 'Volume'])
+        df_vol['Date_v'] = pd.to_datetime(df_vol['Timestamp_v'], unit='ms').dt.normalize()
+        df['Date_norm'] = df['Date'].dt.normalize()
+        df = df.merge(df_vol[['Date_v', 'Volume']], left_on='Date_norm', right_on='Date_v', how='left')
+        df['Volume'] = df['Volume'].fillna(0)
+        df['Quote_volume'] = df['Volume']
+        df['Trades'] = 0
+        df = df[['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Quote_volume', 'Trades']].copy()
+        df = df.drop_duplicates(subset='Date').reset_index(drop=True)
+        return df
+    except Exception as e:
+        st.error(f"Erreur de chargement des prix ({coingecko_id}) : {e}")
+        return pd.DataFrame()
+
+
+@st.cache_data(ttl=300)
+def charger_derives_coingecko(index_id):
+    """Funding Rate + Open Interest via l'agrégateur CoinGecko (accessible depuis tout serveur).
+    index_id : 'BTC', 'ETH', 'SOL', 'LINK', 'AVAX'.
+    """
+    funding, oi_usd, vol_24h = 0.0, 0.0, 0.0
+    try:
+        url = "https://api.coingecko.com/api/v3/derivatives"
+        rep = requests.get(url, timeout=12).json()
+        # On garde les perpétuels du bon index, et on choisit le marché le plus liquide
+        candidats = []
+        for t in rep:
+            if t.get('index_id') == index_id and t.get('contract_type') == 'perpetual':
+                oi = t.get('open_interest') or 0
+                fr = t.get('funding_rate')
+                v = t.get('volume_24h') or 0
+                if oi and fr is not None:
+                    candidats.append((float(oi), float(fr), float(v)))
+        if candidats:
+            # Marché le plus liquide = référence funding ; OI sommé sur tous les marchés
+            candidats.sort(key=lambda x: x[0], reverse=True)
+            funding = candidats[0][1]                    # déjà en %
+            oi_usd = sum(c[0] for c in candidats)        # somme OI (USD)
+            vol_24h = sum(c[2] for c in candidats)       # somme volume 24h
+    except Exception:
+        pass
+    return funding, oi_usd, vol_24h
+
+
+@st.cache_data(ttl=300)
+def charger_long_short_ratio(symbole):
+    """Tentative Bybit (peut échouer depuis serveur US) — sinon N/A (None)."""
+    try:
+        url = f"https://api.bybit.com/v5/market/account-ratio?category=linear&symbol={symbole}&period=1h&limit=1"
+        rep = requests.get(url, timeout=6).json()
+        liste = rep.get('result', {}).get('list', [])
+        if liste:
+            buy = float(liste[0].get('buyRatio', 0))
+            sell = float(liste[0].get('sellRatio', 0))
+            if sell > 0:
+                return buy / sell
+    except Exception:
+        pass
+    return None
+
 
 @st.cache_data(ttl=600)
-def charger_actualites(ticker):
-    try:
-        headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
-        url_news = f"https://min-api.cryptocompare.com/data/v2/news/?categories={ticker}&lang=EN"
-        reponse = requests.get(url_news, headers=headers, timeout=5) 
-        if reponse.status_code == 200:
-            res = reponse.json()
-            return res.get('Data', [])[:4]
-    except:
-        pass
-    return []
+def charger_donnees_coingecko(coin_id):
+    """Données fondamentales via /coins/markets (endpoint léger) avec retry."""
+    url = ("https://api.coingecko.com/api/v3/coins/markets"
+           f"?vs_currency=usd&ids={coin_id}"
+           "&price_change_percentage=24h,7d,30d,1y")
+    for tentative in range(3):
+        try:
+            rep = requests.get(url, timeout=12)
+            if rep.status_code == 429:  # rate-limit → on attend et on réessaie
+                import time
+                time.sleep(2 * (tentative + 1))
+                continue
+            rep.raise_for_status()
+            data = rep.json()
+            if not data:
+                return {}
+            m = data[0]
+            return {
+                "market_cap": m.get('market_cap', 0) or 0,
+                "total_volume_24h": m.get('total_volume', 0) or 0,
+                "circulating_supply": m.get('circulating_supply', 0) or 0,
+                "total_supply": m.get('total_supply', 0) or 0,
+                "max_supply": m.get('max_supply', None),
+                "ath": m.get('ath', 0) or 0,
+                "ath_date": m.get('ath_date', ''),
+                "ath_change_pct": m.get('ath_change_percentage', 0) or 0,
+                "price_change_24h_pct": m.get('price_change_percentage_24h_in_currency', 0) or 0,
+                "price_change_7d_pct": m.get('price_change_percentage_7d_in_currency', 0) or 0,
+                "price_change_30d_pct": m.get('price_change_percentage_30d_in_currency', 0) or 0,
+                "price_change_1y_pct": m.get('price_change_percentage_1y_in_currency', 0) or 0,
+                "fully_diluted_valuation": m.get('fully_diluted_valuation', 0) or 0,
+            }
+        except Exception:
+            import time
+            time.sleep(1)
+    return {}
 
-# --- SÉLECTION DE L'ACTIF ---
-options_cryptos = {"Bitcoin (BTC)": "BTCUSDT", "Ethereum (ETH)": "ETHUSDT", "Solana (SOL)": "SOLUSDT"}
-choix = st.selectbox("Sélectionne un actif à analyser :", list(options_cryptos.keys()))
+
+@st.cache_data(ttl=600)
+def charger_dominance_btc():
+    """BTC Dominance + Total Market Cap depuis CoinGecko."""
+    try:
+        url = "https://api.coingecko.com/api/v3/global"
+        rep = requests.get(url, timeout=10).json()
+        data = rep.get('data', {})
+        return {
+            "btc_dominance": data.get('market_cap_percentage', {}).get('btc', 0),
+            "eth_dominance": data.get('market_cap_percentage', {}).get('eth', 0),
+            "total_market_cap": data.get('total_market_cap', {}).get('usd', 0),
+            "total_volume_24h": data.get('total_volume', {}).get('usd', 0),
+            "market_cap_change_24h_pct": data.get('market_cap_change_percentage_24h_usd', 0),
+        }
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=120)
+def charger_fear_and_greed():
+    """Fear & Greed Index + historique 30j."""
+    try:
+        rep = requests.get("https://api.alternative.me/fng/?limit=30", timeout=5).json()
+        data = rep.get('data', [])
+        actuel = data[0] if data else {}
+        historique = [(int(d['value']), d['value_classification']) for d in data]
+        return int(actuel.get('value', 50)), actuel.get('value_classification', 'Neutre'), historique
+    except Exception:
+        return 50, "Neutre", []
+
+
+@st.cache_data(ttl=86400)
+def traduire_fr(texte):
+    """Traduit un texte EN→FR via l'endpoint public Google Translate. Fallback : texte original."""
+    if not texte or not texte.strip():
+        return texte
+    try:
+        url = "https://translate.googleapis.com/translate_a/single"
+        params = {"client": "gtx", "sl": "en", "tl": "fr", "dt": "t", "q": texte[:1500]}
+        rep = requests.get(url, params=params, timeout=8)
+        if rep.status_code == 200:
+            data = rep.json()
+            # data[0] = liste de segments traduits
+            return "".join(seg[0] for seg in data[0] if seg[0])
+    except Exception:
+        pass
+    return texte
+
+
+@st.cache_data(ttl=600)
+def charger_actualites(ticker, coingecko_id):
+    """Actualités via flux RSS (fiables, publics) puis CryptoCompare, traduites en FR."""
+    import xml.etree.ElementTree as ET
+    import re as _re
+
+    nom_complet = {"BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana",
+                   "LINK": "chainlink", "AVAX": "avalanche"}.get(ticker, ticker.lower())
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+
+    def nettoyer_html(txt):
+        txt = _re.sub(r'<[^>]+>', '', txt or '')
+        txt = _re.sub(r'\s+', ' ', txt)
+        return txt.strip()
+
+    bruts = []  # articles non traduits, on filtre par pertinence
+
+    # ── Source 1 : flux RSS généralistes crypto ──
+    feeds = [
+        ("CoinTelegraph", "https://cointelegraph.com/rss"),
+        ("CoinDesk", "https://www.coindesk.com/arc/outboundfeeds/rss/"),
+        ("Decrypt", "https://decrypt.co/feed"),
+        ("Bitcoin Magazine", "https://bitcoinmagazine.com/feed"),
+    ]
+
+    # ── Mots-clés écosystème par actif (renforcent la pertinence) ──
+    ecosystem_kw = {
+        "BTC": ["bitcoin", "btc", "satoshi", "halving", "lightning network", "ordinals", "blackrock spot etf",
+                "michael saylor", "microstrategy", "miner", "hash rate"],
+        "ETH": ["ethereum", "eth", "vitalik", "buterin", "ether", "ethereum 2", "merge", "shanghai",
+                "dencun", "pectra", "evm", "smart contract", "ethereum etf", "lido", "staking eth"],
+        "SOL": ["solana", "sol", "anatoly", "yakovenko", "firedancer", "jito", "phantom wallet",
+                "marinade", "solana mobile", "saga phone", "memecoin solana"],
+        "LINK": ["chainlink", "link", "ccip", "oracle", "sergey nazarov", "data feed", "cross-chain link"],
+        "AVAX": ["avalanche", "avax", "subnet", "ava labs", "emin gun sirer", "avalanche9000", "core wallet"],
+        "HYPE": ["hyperliquid", "hype", "hyperbft", "hyperevm", "hypercore", "perp dex", "hyperliquid dex"],
+        "JUP": ["jupiter", "jup", "jupiter exchange", "jupiter dex", "dex aggregator solana", "jupiter lend", "jupiter perps"],
+        "AAVE": ["aave", "ghо", "gho stablecoin", "aave v4", "lending defi", "safety module", "stani kulechov"],
+        "POL": ["polygon", "pol", "matic", "agglayer", "polygon zk", "polygon pos", "polygon labs"],
+        "LDO": ["lido", "ldo", "steth", "liquid staking", "lido dao", "lido finance", "staked eth"],
+        "FET": ["fetch.ai", "fetch ai", "fet", "artificial superintelligence", "asi alliance", "singularitynet", "ocean protocol", "ai agent"],
+        "ARB": ["arbitrum", "arb", "arbitrum one", "stylus", "orbit chain", "offchain labs", "rollup optimiste"],
+        "NEAR": ["near protocol", "near", "nightshade", "chain signatures", "near foundation", "illia polosukhin"],
+        "SUI": ["sui", "sui network", "move language", "mysten labs", "sui blockchain", "walrus"],
+    }
+    kw_list = ecosystem_kw.get(ticker, [ticker.lower(), nom_complet])
+
+    def score_pertinence(titre, desc):
+        """Retourne un score de pertinence (0 = hors sujet, >0 = lié)."""
+        titre_l = titre.lower()
+        desc_l = desc.lower()
+        score = 0
+        # Ticker ou nom dans le titre = très fort signal
+        if ticker.lower() in titre_l or nom_complet in titre_l:
+            score += 10
+        # Mot-clé écosystème dans le titre
+        for kw in kw_list:
+            if kw in titre_l:
+                score += 5
+                break
+        # Présence dans la description (mais moins fort)
+        for kw in kw_list:
+            if kw in desc_l:
+                score += 1
+                break
+        return score
+
+    for source, url in feeds:
+        try:
+            rep = requests.get(url, headers=headers, timeout=8)
+            if rep.status_code != 200:
+                continue
+            root = ET.fromstring(rep.content)
+            for item in root.iter('item'):
+                titre = (item.findtext('title') or '').strip()
+                desc = nettoyer_html(item.findtext('description') or '')
+                lien = (item.findtext('link') or '').strip()
+                pub = (item.findtext('pubDate') or '').strip()
+                sc = score_pertinence(titre, desc)
+                # Garder seulement les articles vraiment liés (score ≥ 5 = ticker/nom/mot-clé dans titre)
+                if sc >= 5:
+                    bruts.append({"title": titre, "body": desc[:300], "url": lien,
+                                  "source": source, "date": pub[:16], "_score": sc})
+        except Exception:
+            continue
+
+    # Trier par pertinence
+    bruts.sort(key=lambda x: x.get('_score', 0), reverse=True)
+
+    # ── Source 2 : CryptoCompare (filtré par catégorie, donc déjà pertinent) ──
+    if len(bruts) < 4:
+        try:
+            url = f"https://min-api.cryptocompare.com/data/v2/news/?categories={ticker}&lang=EN&sortOrder=popular"
+            rep = requests.get(url, headers=headers, timeout=8)
+            if rep.status_code == 200:
+                for art in rep.json().get('Data', [])[:6]:
+                    bruts.append({
+                        "title": art.get('title', ''),
+                        "body": (art.get('body', '') or '')[:300],
+                        "url": art.get('url', ''),
+                        "source": art.get('source_info', {}).get('name', 'CryptoCompare'),
+                        "date": datetime.fromtimestamp(art.get('published_on', 0)).strftime('%d/%m/%Y %H:%M') if art.get('published_on') else '',
+                        "_score": 8,  # déjà filtré par CryptoCompare donc pertinent par construction
+                    })
+        except Exception:
+            pass
+
+    # ── Déduplication par titre ──
+    vus = set()
+    uniques = []
+    for art in bruts:
+        cle = art['title'][:60].lower()
+        if cle not in vus:
+            vus.add(cle)
+            uniques.append(art)
+    bruts = uniques
+
+    # ── Traduction FR des 6 articles les plus pertinents ──
+    articles = []
+    for art in bruts[:6]:
+        articles.append({
+            "title": traduire_fr(art["title"]),
+            "body": traduire_fr(art["body"]),
+            "url": art["url"],
+            "source": art["source"],
+            "date": art["date"],
+        })
+
+    # ── Source 3 : liens directs si tout a échoué ──
+    if not articles:
+        tl = ticker.lower()
+        articles = [
+            {"title": f"Actualités {ticker} — CoinDesk", "body": "Dernières analyses et breaking news.", "url": f"https://www.coindesk.com/tag/{tl}/", "source": "CoinDesk", "date": "En direct"},
+            {"title": f"Analyses {ticker} — CoinTelegraph", "body": "Couverture quotidienne et analyses de prix.", "url": f"https://cointelegraph.com/tags/{tl}", "source": "CoinTelegraph", "date": "En direct"},
+            {"title": f"Flux X — #{ticker}", "body": "Discussions de la communauté en temps réel.", "url": f"https://x.com/search?q=%23{ticker}+crypto&f=live", "source": "X", "date": "Live"},
+        ]
+
+    return articles
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 4. MOTEUR D'ANALYSE TECHNIQUE
+# ══════════════════════════════════════════════════════════════════════════════
+
+def calculer_rsi_wilder(series, period=14):
+    """RSI avec lissage exponentiel de Wilder (méthode correcte)."""
+    delta = series.diff()
+    gain = delta.where(delta > 0, 0.0)
+    perte = -delta.where(delta < 0, 0.0)
+    avg_gain = gain.ewm(alpha=1/period, min_periods=period, adjust=False).mean()
+    avg_perte = perte.ewm(alpha=1/period, min_periods=period, adjust=False).mean()
+    rs = avg_gain / avg_perte
+    return 100 - (100 / (1 + rs))
+
+
+def calculer_macd(series, fast=12, slow=26, signal=9):
+    """MACD classique avec ligne de signal et histogramme."""
+    ema_fast = series.ewm(span=fast, adjust=False).mean()
+    ema_slow = series.ewm(span=slow, adjust=False).mean()
+    macd_line = ema_fast - ema_slow
+    signal_line = macd_line.ewm(span=signal, adjust=False).mean()
+    histogram = macd_line - signal_line
+    return macd_line, signal_line, histogram
+
+
+def calculer_atr(df, period=14):
+    """Average True Range pour mesurer la volatilité."""
+    high_low = df['High'] - df['Low']
+    high_close = (df['High'] - df['Close'].shift()).abs()
+    low_close = (df['Low'] - df['Close'].shift()).abs()
+    true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+    return true_range.ewm(alpha=1/period, min_periods=period, adjust=False).mean()
+
+
+def calculer_adx(df, period=14):
+    """ADX — mesure la force de la tendance (pas la direction)."""
+    plus_dm = df['High'].diff()
+    minus_dm = -df['Low'].diff()
+    plus_dm = plus_dm.where((plus_dm > minus_dm) & (plus_dm > 0), 0.0)
+    minus_dm = minus_dm.where((minus_dm > plus_dm) & (minus_dm > 0), 0.0)
+    atr = calculer_atr(df, period)
+    plus_di = 100 * (plus_dm.ewm(alpha=1/period, adjust=False).mean() / atr)
+    minus_di = 100 * (minus_dm.ewm(alpha=1/period, adjust=False).mean() / atr)
+    dx = 100 * ((plus_di - minus_di).abs() / (plus_di + minus_di))
+    adx = dx.ewm(alpha=1/period, adjust=False).mean()
+    return adx, plus_di, minus_di
+
+
+def calculer_stochastic_rsi(rsi_series, period=14, smooth_k=3, smooth_d=3):
+    """Stochastic RSI — mesure le RSI par rapport à sa propre plage."""
+    min_rsi = rsi_series.rolling(window=period).min()
+    max_rsi = rsi_series.rolling(window=period).max()
+    stoch_rsi = (rsi_series - min_rsi) / (max_rsi - min_rsi)
+    k = stoch_rsi.rolling(window=smooth_k).mean() * 100
+    d = k.rolling(window=smooth_d).mean()
+    return k, d
+
+
+def calculer_obv(df):
+    """On-Balance Volume — flux de volume cumulé."""
+    obv = (np.sign(df['Close'].diff()) * df['Volume']).fillna(0).cumsum()
+    return obv
+
+
+def calculer_vwap_rolling(df, period=20):
+    """VWAP glissant sur N périodes."""
+    cumul_vol = df['Volume'].rolling(window=period).sum()
+    cumul_vol_prix = (df['Close'] * df['Volume']).rolling(window=period).sum()
+    return cumul_vol_prix / cumul_vol
+
+
+def calculer_ichimoku(df):
+    """Ichimoku Cloud complet."""
+    tenkan = (df['High'].rolling(9).max() + df['Low'].rolling(9).min()) / 2
+    kijun = (df['High'].rolling(26).max() + df['Low'].rolling(26).min()) / 2
+    senkou_a = ((tenkan + kijun) / 2).shift(26)
+    senkou_b = ((df['High'].rolling(52).max() + df['Low'].rolling(52).min()) / 2).shift(26)
+    chikou = df['Close'].shift(-26)
+    return tenkan, kijun, senkou_a, senkou_b, chikou
+
+
+def calculer_fibonacci(df, lookback=100):
+    """Niveaux de retracement Fibonacci sur le swing récent."""
+    recent = df.tail(lookback)
+    swing_high = recent['High'].max()
+    swing_low = recent['Low'].min()
+    diff = swing_high - swing_low
+    niveaux = {
+        "0% (High)": swing_high,
+        "23.6%": swing_high - 0.236 * diff,
+        "38.2%": swing_high - 0.382 * diff,
+        "50%": swing_high - 0.5 * diff,
+        "61.8%": swing_high - 0.618 * diff,
+        "78.6%": swing_high - 0.786 * diff,
+        "100% (Low)": swing_low,
+    }
+    return niveaux
+
+
+def detecter_supports_resistances(df, window=15, nb=3):
+    """Détection améliorée : exclut les bougies non confirmées."""
+    df_confirmed = df.iloc[:-window]  # Exclure les bougies trop récentes
+    if len(df_confirmed) < window * 2:
+        return [], []
+    is_min = df_confirmed['Low'] == df_confirmed['Low'].rolling(window=window, center=True).min()
+    is_max = df_confirmed['High'] == df_confirmed['High'].rolling(window=window, center=True).max()
+    supports = df_confirmed[is_min]['Low'].tail(nb).tolist()
+    resistances = df_confirmed[is_max]['High'].tail(nb).tolist()
+    return supports, resistances
+
+
+def appliquer_analyse_technique(df):
+    """Applique l'ensemble des indicateurs techniques au DataFrame."""
+    # Moyennes mobiles
+    df['EMA_12'] = df['Close'].ewm(span=12, adjust=False).mean()
+    df['EMA_26'] = df['Close'].ewm(span=26, adjust=False).mean()
+    df['MA_20'] = df['Close'].rolling(20).mean()
+    df['MA_50'] = df['Close'].rolling(50).mean()
+    df['MA_100'] = df['Close'].rolling(100).mean()
+    df['MA_200'] = df['Close'].rolling(200).mean()
+
+    # Bollinger Bands
+    df['STD_20'] = df['Close'].rolling(20).std()
+    df['BB_Haute'] = df['MA_20'] + (2 * df['STD_20'])
+    df['BB_Basse'] = df['MA_20'] - (2 * df['STD_20'])
+    df['BB_Width'] = (df['BB_Haute'] - df['BB_Basse']) / df['MA_20'] * 100
+
+    # RSI (Wilder)
+    df['RSI'] = calculer_rsi_wilder(df['Close'], 14)
+
+    # Stochastic RSI
+    df['StochRSI_K'], df['StochRSI_D'] = calculer_stochastic_rsi(df['RSI'])
+
+    # MACD
+    df['MACD'], df['MACD_Signal'], df['MACD_Hist'] = calculer_macd(df['Close'])
+
+    # ATR
+    df['ATR'] = calculer_atr(df, 14)
+    df['ATR_Pct'] = (df['ATR'] / df['Close']) * 100
+
+    # ADX
+    df['ADX'], df['Plus_DI'], df['Minus_DI'] = calculer_adx(df, 14)
+
+    # OBV
+    df['OBV'] = calculer_obv(df)
+    df['OBV_MA'] = df['OBV'].rolling(20).mean()
+
+    # VWAP Rolling
+    df['VWAP_20'] = calculer_vwap_rolling(df, 20)
+
+    # Volume
+    df['Vol_MA_20'] = df['Volume'].rolling(20).mean()
+
+    # Ichimoku
+    df['Tenkan'], df['Kijun'], df['Senkou_A'], df['Senkou_B'], df['Chikou'] = calculer_ichimoku(df)
+
+    return df
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 5. MOTEUR ADAPTATIF — RÉGIME DE MARCHÉ + 3 SETUPS
+# ══════════════════════════════════════════════════════════════════════════════
+
+def detecter_regime(df):
+    """Détecte le régime de marché : Haussier / Baissier / Range.
+    Retourne (label, emoji, pente_ma200_pct, details_dict).
+    """
+    infos = df.iloc[-1]
+    prix = infos['Close']
+    ma50 = infos['MA_50']
+    ma200 = infos['MA_200']
+    adx = infos['ADX']
+
+    # Pente de la MA200 sur 20 jours (en %)
+    pente = 0.0
+    if df['MA_200'].notna().sum() > 20:
+        ma200_passe = df['MA_200'].iloc[-21]
+        if not pd.isna(ma200_passe) and ma200_passe > 0:
+            pente = ((ma200 - ma200_passe) / ma200_passe) * 100
+
+    details = {
+        "prix_vs_ma200": "au-dessus" if (not pd.isna(ma200) and prix > ma200) else "en-dessous",
+        "ma50_vs_ma200": "MA50 > MA200" if (not pd.isna(ma200) and ma50 > ma200) else "MA50 < MA200",
+        "pente_ma200": pente,
+        "adx": adx,
+    }
+
+    if pd.isna(ma200):
+        return "Indéterminé", "❔", pente, details
+
+    haussier = prix > ma200 and ma50 > ma200 and pente > -1
+    baissier = prix < ma200 and ma50 < ma200 and pente < 1
+
+    if haussier:
+        return "Tendance Haussière", "📈", pente, details
+    elif baissier:
+        return "Tendance Baissière", "📉", pente, details
+    else:
+        return "Range / Transition", "↔️", pente, details
+
+
+def _proche(a, b, tolerance_pct):
+    """True si a est à moins de tolerance_pct de b."""
+    if b == 0:
+        return False
+    return abs(a - b) / b * 100 <= tolerance_pct
+
+
+def score_pullback(df, niveaux_fib):
+    """SETUP 1 — Achat de repli en tendance haussière. Le plus haute-probabilité.
+    Retourne (score/10, liste de signaux actifs, zone_entree)."""
+    infos = df.iloc[-1]
+    prec = df.iloc[-2]
+    prix = infos['Close']
+    score = 0.0
+    signaux = []
+
+    # Gate : régime haussier (prix > MA200)
+    if not pd.isna(infos['MA_200']) and prix > infos['MA_200']:
+        score += 2.0
+        signaux.append(("✅", "Tendance de fond haussière (prix > MA200)"))
+    else:
+        signaux.append(("⛔", "Pas de tendance haussière de fond — setup peu fiable"))
+        return 0.0, signaux, None
+
+    # Repli vers support dynamique (MA50 ou VWAP)
+    near_ma50 = _proche(prix, infos['MA_50'], 4)
+    near_vwap = _proche(prix, infos['VWAP_20'], 3)
+    if near_ma50 or near_vwap:
+        score += 2.5
+        ref = "MA50" if near_ma50 else "VWAP"
+        signaux.append(("✅", f"Repli sur support dynamique ({ref}) — zone d'achat"))
+    elif prix > infos['MA_50']:
+        score += 0.5
+        signaux.append(("⚪", "Prix au-dessus du support, pas encore de repli net"))
+
+    # RSI en zone de rebond (revient de survente sans euphorie)
+    if 38 <= infos['RSI'] <= 55:
+        score += 2.0
+        signaux.append(("✅", f"RSI en zone de rebond ({infos['RSI']:.0f}) — pas suracheté"))
+        if infos['RSI'] > prec['RSI']:
+            score += 0.5
+            signaux.append(("✅", "RSI qui remonte — momentum se rétablit"))
+    elif infos['RSI'] < 38:
+        score += 1.0
+        signaux.append(("⚪", f"RSI bas ({infos['RSI']:.0f}) — repli profond, surveiller le rebond"))
+
+    # MACD histogramme qui se retourne à la hausse
+    if infos['MACD_Hist'] > prec['MACD_Hist']:
+        score += 1.5
+        signaux.append(("✅", "MACD se retourne à la hausse — pression vendeuse qui faiblit"))
+
+    # Proximité d'un niveau Fibonacci de rebond
+    for label in ["38.2%", "50%", "61.8%"]:
+        if label in niveaux_fib and _proche(prix, niveaux_fib[label], 2.5):
+            score += 1.5
+            signaux.append(("✅", f"Rebond sur Fibonacci {label} — zone technique forte"))
+            break
+
+    zone = f"{min(infos['MA_50'], infos['VWAP_20']):,.2f} – {prix:,.2f} $"
+    return min(10.0, score), signaux, zone
+
+
+def score_breakout(df, liste_resistances):
+    """SETUP 2 — Cassure / momentum. Pour suivre une vague en cours.
+    Retourne (score/10, signaux, zone_entree)."""
+    infos = df.iloc[-1]
+    prix = infos['Close']
+    score = 0.0
+    signaux = []
+
+    # Cassure d'une résistance récente
+    resistance_cassee = None
+    if liste_resistances:
+        res_proche = min(liste_resistances, key=lambda r: abs(r - prix))
+        if prix >= res_proche * 0.99:  # à 1% ou au-dessus
+            score += 3.0
+            resistance_cassee = res_proche
+            signaux.append(("✅", f"Cassure de résistance ({res_proche:,.2f} $)"))
+        elif prix >= res_proche * 0.97:
+            score += 1.0
+            signaux.append(("⚪", f"Approche de résistance ({res_proche:,.2f} $) — guetter la cassure"))
+
+    # Volume de confirmation
+    if infos['Volume'] > 1.3 * infos['Vol_MA_20']:
+        score += 2.5
+        signaux.append(("✅", "Volume de confirmation présent — cassure crédible"))
+    else:
+        signaux.append(("⚪", "Volume insuffisant — risque de faux signal (fakeout)"))
+
+    # ADX en hausse + DI haussier
+    if infos['ADX'] > 22 and infos['Plus_DI'] > infos['Minus_DI']:
+        score += 2.5
+        signaux.append(("✅", f"Tendance qui se renforce (ADX {infos['ADX']:.0f}, +DI dominant)"))
+    elif infos['Plus_DI'] > infos['Minus_DI']:
+        score += 1.0
+        signaux.append(("⚪", "Direction haussière mais tendance encore faible"))
+
+    # RSI momentum sain
+    if 50 <= infos['RSI'] <= 72:
+        score += 2.0
+        signaux.append(("✅", f"RSI en momentum sain ({infos['RSI']:.0f})"))
+    elif infos['RSI'] > 72:
+        signaux.append(("⚠️", f"RSI suracheté ({infos['RSI']:.0f}) — cassure tardive, risque accru"))
+
+    zone = f"{prix:,.2f} $ (sur confirmation de clôture)" if resistance_cassee else None
+    return min(10.0, score), signaux, zone
+
+
+def score_reversal(df, funding, fng_valeur, ls_ratio):
+    """SETUP 3 — Retournement / capitulation. Contrarian, HAUT RISQUE.
+    Retourne (score/10, signaux, zone_entree)."""
+    infos = df.iloc[-1]
+    prix = infos['Close']
+    score = 0.0
+    signaux = []
+
+    # RSI en survente profonde
+    if infos['RSI'] < 30:
+        score += 2.5
+        signaux.append(("✅", f"RSI en survente extrême ({infos['RSI']:.0f})"))
+    elif infos['RSI'] < 38:
+        score += 1.0
+        signaux.append(("⚪", f"RSI bas ({infos['RSI']:.0f})"))
+
+    # Prix sous la bande de Bollinger basse
+    if prix <= infos['BB_Basse']:
+        score += 2.0
+        signaux.append(("✅", "Prix sous la bande de Bollinger basse — excès statistique"))
+
+    # Volume climax (capitulation)
+    if infos['Volume'] > 1.5 * infos['Vol_MA_20']:
+        score += 2.0
+        signaux.append(("✅", "Volume climax — possible capitulation vendeuse"))
+
+    # Sentiment / dérivés extrêmes
+    if fng_valeur < 25:
+        score += 1.5
+        signaux.append(("✅", f"Peur extrême (Fear & Greed {fng_valeur})"))
+    if funding < 0:
+        score += 1.0
+        signaux.append(("✅", "Funding négatif — shorts dominants, pression de rachat"))
+    if ls_ratio is not None and ls_ratio < 0.85:
+        score += 0.5
+        signaux.append(("✅", "Majorité de shorts — carburant de short squeeze"))
+
+    # Divergence haussière simplifiée (prix plus bas, RSI plus haut sur 10j)
+    if len(df) > 11:
+        prix_bas_recent = df['Close'].iloc[-1] < df['Close'].iloc[-11]
+        rsi_plus_haut = df['RSI'].iloc[-1] > df['RSI'].iloc[-11]
+        if prix_bas_recent and rsi_plus_haut:
+            score += 1.5
+            signaux.append(("✅", "Divergence haussière RSI — affaiblissement de la baisse"))
+
+    if not signaux:
+        signaux.append(("⛔", "Aucun signe de capitulation — pas de setup contrarian"))
+
+    zone = f"{infos['BB_Basse']:,.2f} – {prix:,.2f} $" if score >= 4 else None
+    return min(10.0, score), signaux, zone
+
+
+def recommander(regime, s_pull, s_break, s_rev):
+    """Sélectionne le setup à privilégier selon le régime et renvoie la reco finale.
+    Retourne (nom_setup, score, verdict, couleur, niveau_risque)."""
+    # Validité des setups selon le régime
+    candidats = []  # (nom, score, risque)
+
+    if regime == "Tendance Haussière":
+        candidats.append(("Pullback (repli en tendance)", s_pull, "Modéré"))
+        candidats.append(("Breakout (momentum)", s_break, "Modéré"))
+        candidats.append(("Reversal (contrarian)", s_rev * 0.6, "Élevé"))  # downweighté
+    elif regime == "Tendance Baissière":
+        # En tendance baissière, on n'achète PAS les replis. Seul le reversal vaut, mais risqué.
+        candidats.append(("Reversal (contrarian)", s_rev, "Très élevé"))
+        candidats.append(("Breakout (momentum)", s_break * 0.5, "Élevé"))
+    else:  # Range / Transition
+        candidats.append(("Reversal (bas de range)", s_rev, "Élevé"))
+        candidats.append(("Breakout (haut de range)", s_break, "Modéré"))
+        candidats.append(("Pullback (repli)", s_pull * 0.8, "Modéré"))
+
+    candidats.sort(key=lambda x: x[1], reverse=True)
+    nom, score, risque = candidats[0]
+
+    # Verdict basé sur le meilleur score valide
+    if score >= 6.5:
+        verdict, couleur = "ENTRÉE ENVISAGEABLE", "success"
+    elif score >= 4.5:
+        verdict, couleur = "SURVEILLER DE PRÈS", "warning"
+    else:
+        verdict, couleur = "S'ABSTENIR POUR L'INSTANT", "error"
+
+    return nom, score, verdict, couleur, risque
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 6. INTERFACE — SÉLECTION & CHARGEMENT
+# ══════════════════════════════════════════════════════════════════════════════
+
+choix = st.selectbox("Sélectionne un actif :", list(options_cryptos.keys()))
 symbole_api = options_cryptos[choix]
 fiche = repo_fondamental[choix]
 
-# --- PARAMÉTRAGE DES FLUX ---
-df = charger_donnees_prix(symbole_api)
+# Chargement des données (CoinGecko ID pour les prix OHLC)
+df = charger_donnees_prix(fiche['coingecko_id'], fiche['ticker_news'])
+if df.empty:
+    st.stop()
 
-try:
-    fng_res = requests.get("https://api.alternative.me/fng/?limit=1").json()
-    fng_valeur = int(fng_res['data'][0]['value'])
-    fng_statut = fng_res['data'][0]['value_classification']
-except:
-    fng_valeur, fng_statut = 50, "Neutre"
+funding, open_interest_usd, deriv_volume = charger_derives_coingecko(fiche['index_id'])
+ls_ratio = charger_long_short_ratio(symbole_api)
+oi_var_24h = None  # variation OI 24h indisponible via agrégateur gratuit
+fng_valeur, fng_statut, fng_historique = charger_fear_and_greed()
+cg_data = charger_donnees_coingecko(fiche['coingecko_id'])
+global_data = charger_dominance_btc()
 
-# --- ENGINE MATHÉMATIQUE (LES 4 PILIERS) ---
-df['Moyenne_50'] = df['Close'].rolling(window=50).mean()
-df['MA20'] = df['Close'].rolling(window=20).mean()
-df['STD20'] = df['Close'].rolling(window=20).std()
-df['Bollinger_Basse'] = df['MA20'] - (2 * df['STD20'])
-df['Bollinger_Haute'] = df['MA20'] + (2 * df['STD20'])
-
-delta = df['Close'].diff()
-gain = delta.where(delta > 0, 0).rolling(window=14).mean()
-perte = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-df['RSI'] = 100 - (100 / (1 + (gain / perte)))
-df['Volume_Moyen'] = df['Volume'].rolling(window=20).mean()
-
+# Analyse technique
+df = appliquer_analyse_technique(df)
 infos = df.iloc[-1]
-prix, rsi, b_basse, b_haute, ma50, volume_jour, volume_moyen = infos['Close'], infos['RSI'], infos['Bollinger_Basse'], infos['Bollinger_Haute'], infos['Moyenne_50'], infos['Volume'], infos['Volume_Moyen']
+prix = infos['Close']
 
-# Price Action
-df['Is_Min'] = df['Low'] == df['Low'].rolling(window=15, center=True).min()
-df['Is_Max'] = df['High'] == df['High'].rolling(window=15, center=True).max()
-liste_supports = df[df['Is_Min']]['Low'].tail(3).tolist()
-liste_resistances = df[df['Is_Max']]['High'].tail(3).tolist()
+# Open Interest déjà en USD via CoinGecko derivatives
 
-# --- BARRE LATÉRALE ---
+# Supports / Résistances
+liste_supports, liste_resistances = detecter_supports_resistances(df)
+
+# Fibonacci
+niveaux_fib = calculer_fibonacci(df)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 7. BARRE LATÉRALE — RISK MANAGEMENT + FONDAMENTAL
+# ══════════════════════════════════════════════════════════════════════════════
+
 st.sidebar.header("🧮 Gestion du Risque")
 capital = st.sidebar.number_input("Capital total ($)", value=10000, step=500)
-risque_pct = st.sidebar.slider("Risque par trade (%)", min_value=0.5, max_value=5.0, value=1.0, step=0.5)
+risque_pct = st.sidebar.slider("Risque par trade (%)", 0.5, 5.0, 1.0, 0.5)
 stop_loss_suggere = liste_supports[-1] if liste_supports else prix * 0.95
-stop_loss = st.sidebar.number_input("Prix du Stop Loss ($)", value=float(stop_loss_suggere))
-
-st.sidebar.markdown("---")
-st.sidebar.header("🏛️ Analyse Fondamentale")
-statut_roadmap = st.sidebar.selectbox("Feuille de Route :", ["Neutre (Aucun impact)", "Favorable (+0.5 pt)", "Défavorable (-1.5 pt)"])
-statut_politique = st.sidebar.selectbox("Contexte Légal/Politique :", ["Neutre (Aucun impact)", "Favorable (+0.5 pt)", "Défavorable (-1.5 pt)"])
-
-st.sidebar.markdown("---")
-st.sidebar.header("📱 Réseaux Sociaux")
-st.sidebar.link_button(f"Consulter le flux X de {choix.split()[0]} ↗", fiche["lien_x"])
+stop_loss = st.sidebar.number_input("Stop Loss ($)", value=float(stop_loss_suggere))
 
 risque_dollars = capital * (risque_pct / 100)
 distance_sl = ((prix - stop_loss) / prix) * 100
-taille_position_dollars = risque_dollars / (distance_sl / 100) if distance_sl > 0 else 0
-unites_a_acheter = taille_position_dollars / prix if prix > 0 else 0
+taille_position = risque_dollars / (distance_sl / 100) if distance_sl > 0 else 0
+unites = taille_position / prix if prix > 0 else 0
+
+# Calcul du Take Profit basé sur ratio Risk/Reward
+rr_ratio = st.sidebar.select_slider("Ratio Risk/Reward", options=[1.5, 2.0, 2.5, 3.0, 4.0, 5.0], value=2.0)
+take_profit = prix + (prix - stop_loss) * rr_ratio if distance_sl > 0 else prix * 1.1
 
 st.sidebar.markdown("---")
-st.sidebar.write(f"Perte max autorisée : **{risque_dollars:.2f} $**")
+st.sidebar.write(f"**Perte max :** {risque_dollars:.2f} $")
 if distance_sl > 0:
-    st.sidebar.info(f"👉 **Position recommandée :**\n\nAcheter pour : **{taille_position_dollars:,.2f} $**\n({unites_a_acheter:.4f} {choix.split()[0]})")
+    st.sidebar.info(f"👉 **Position : {taille_position:,.2f} $**\n({unites:.4f} {choix.split()[0]})")
+    st.sidebar.write(f"📍 Stop Loss : {stop_loss:,.2f} $ (−{distance_sl:.1f}%)")
+    st.sidebar.write(f"🎯 Take Profit ({rr_ratio}R) : {take_profit:,.2f} $ (+{distance_sl * rr_ratio:.1f}%)")
+    st.sidebar.write(f"💰 Gain potentiel : {risque_dollars * rr_ratio:,.2f} $")
 
-# --- CALCUL DU SCORE ---
-cond_tendance = prix < ma50
-cond_bollinger = prix <= b_basse
-cond_rsi = rsi < 38
-cond_volume = volume_jour > (1.5 * volume_moyen)
-cond_macro_fng = fng_valeur < 30
+st.sidebar.markdown("---")
+st.sidebar.header("🏛️ Pondération Fondamentale")
+statut_roadmap = st.sidebar.selectbox("Feuille de Route :", ["Neutre", "Favorable (+0.5 pt)", "Défavorable (-1.5 pt)"])
+statut_politique = st.sidebar.selectbox("Contexte Légal :", ["Neutre", "Favorable (+0.5 pt)", "Défavorable (-1.5 pt)"])
 
-score_technique = sum([cond_tendance, cond_bollinger, cond_rsi, cond_volume, cond_macro_fng])
-score_final = float(score_technique)
-if "Favorable" in statut_roadmap: score_final += 0.5
-elif "Défavorable" in statut_roadmap: score_final -= 1.5
-if "Favorable" in statut_politique: score_final += 0.5
-elif "Défavorable" in statut_politique: score_final -= 1.5
-score_final = max(0.0, min(5.0, score_final))
+st.sidebar.markdown("---")
+st.sidebar.header("🔬 Vérif. rapide")
+st.sidebar.link_button("🔓 Déblocages (Tokenomist) ↗", f"https://tokenomist.ai/{fiche['coingecko_id']}",
+                       use_container_width=True)
+st.sidebar.link_button("📊 Revenus (DefiLlama) ↗", liens_defillama.get(fiche['ticker_news'], "https://defillama.com/"),
+                       use_container_width=True)
+st.sidebar.link_button("⚡ Dérivés (CoinGlass) ↗", f"https://www.coinglass.com/currencies/{fiche['ticker_news']}",
+                       use_container_width=True)
+st.sidebar.caption("Vérifie le vesting AVANT d'entrer. Section complète en bas de page.")
 
-# --- RENDU DE L'INTERFACE VISUELLE ---
+st.sidebar.markdown("---")
+st.sidebar.header("📱 Liens")
+st.sidebar.link_button(f"Flux X de {choix.split()[0]} ↗", fiche["lien_x"], use_container_width=True)
+# ══════════════════════════════════════════════════════════════════════════════
+# 8. MOTEUR DE DÉCISION — RÉGIME + SETUPS
+# ══════════════════════════════════════════════════════════════════════════════
+
+regime, regime_emoji, pente_ma200, regime_details = detecter_regime(df)
+s_pull, sig_pull, zone_pull = score_pullback(df, niveaux_fib)
+s_break, sig_break, zone_break = score_breakout(df, liste_resistances)
+s_rev, sig_rev, zone_rev = score_reversal(df, funding, fng_valeur, ls_ratio)
+
+# Bonus/malus fondamental manuel appliqué au setup retenu
+ajust_fonda = 0.0
+if "Favorable" in statut_roadmap:
+    ajust_fonda += 0.5
+elif "Défavorable" in statut_roadmap:
+    ajust_fonda -= 1.0
+if "Favorable" in statut_politique:
+    ajust_fonda += 0.5
+elif "Défavorable" in statut_politique:
+    ajust_fonda -= 1.0
+
+nom_setup, score_setup, verdict, couleur, niveau_risque = recommander(regime, s_pull, s_break, s_rev)
+score_setup = max(0.0, min(10.0, score_setup + ajust_fonda))
+
+# Associer les signaux et la zone au setup recommandé
+if "Pullback" in nom_setup:
+    signaux_reco, zone_reco = sig_pull, zone_pull
+elif "Breakout" in nom_setup:
+    signaux_reco, zone_reco = sig_break, zone_break
+else:
+    signaux_reco, zone_reco = sig_rev, zone_rev
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 9. AFFICHAGE PRINCIPAL
+# ══════════════════════════════════════════════════════════════════════════════
+
 st.markdown(f"# 💰 {choix.split()[0]} : **{prix:,.2f} USD**")
 
-c1, c2, c3, c4 = st.columns(4)
-c1.metric(label="Prix Clôture 24h", value=f"{prix:,.2f} $")
-c2.metric(label="RSI (Momentum)", value=f"{rsi:.1f}")
-c3.metric(label="Objectif Bande Basse", value=f"{b_basse:,.2f} $")
-c4.metric(label="Ratio Volume (Actuel/Moyen)", value=f"{volume_jour/volume_moyen:.2f}x")
+# ── Marquage dynamique : quels indicateurs alimentent RÉELLEMENT le score ──
+# 🎯 = entre dans le calcul du setup retenu. 📊 = contexte, lecture seule.
+_type_setup = ('pullback' if 'Pullback' in nom_setup
+               else 'breakout' if 'Breakout' in nom_setup else 'reversal')
+_INDIC_PAR_SETUP = {
+    'pullback': {'regime', 'pente', 'rsi', 'macd', 'vwap'},
+    'breakout': {'regime', 'adx', 'rsi'},
+    'reversal': {'rsi', 'funding'},
+}
+_scorants = _INDIC_PAR_SETUP.get(_type_setup, set())
 
-if score_final >= 4: st.success(f"🔥 CONFLUENCE GLOBALE ULTIME (Score: {score_final}/5) : Zone d'achat institutionnelle majeure.")
-elif score_final >= 2.5: st.warning(f"⚠️ SIGNAL MODÉRÉ (Score: {score_final}/5) : Configuration technique intéressante. Accumulation fractionnée possible.")
-else: st.error(f"❌ SIGNAL NEUTRE OU DANGEREUX (Score: {score_final}/5) : Risque élevé ou absence de panique. Rester à l'écart.")
+def _mk(cle):
+    """Préfixe l'étiquette d'une métrique selon qu'elle compte ou non dans le score."""
+    return "🎯 " if cle in _scorants else "📊 "
 
-# --- LEXIQUE ---
-with st.expander("📖 Guide de lecture et Lexique Technique"):
+st.info(f"🎯 = **alimente le score** du setup retenu ({nom_setup.split('(')[0].strip()})  ·  "
+        f"📊 = **contexte**, lecture seule (n'entre pas dans la note)")
+
+
+reg_col1, reg_col2, reg_col3 = st.columns(3)
+reg_col1.metric(_mk('regime') + "Régime de marché", f"{regime_emoji} {regime}",
+                help="📈 HAUSSIER : prix > MA200 ET MA50 > MA200 ET pente fond positive. On achète les replis (setup Pullback prioritaire).\n📉 BAISSIER : prix < MA200 ET MA50 < MA200. On évite d'acheter ; seul le Reversal contrarian est envisageable, à haut risque.\n↔️ RANGE : signaux mixtes. On joue les bornes : achat près du bas du range, vente près du haut.")
+reg_col2.metric(_mk('pente') + "Pente MA200 (20j)", f"{pente_ma200:+.1f}%",
+                delta="Fond porteur" if pente_ma200 > 0 else "Fond fragile",
+                delta_color="normal" if pente_ma200 > 0 else "inverse",
+                help="Inclinaison de la moyenne mobile 200 jours sur les 20 derniers jours.\n• > +2% : structure haussière solide, on peut surpondérer le long.\n• 0 à +2% : fond stable, biais haussier modéré.\n• -2% à 0 : fond qui s'essouffle, prudence sur les achats.\n• < -2% : tendance de fond clairement baissière, éviter les longs hors capitulation.")
+reg_col3.metric(_mk('adx') + "Force tendance (ADX)", f"{infos['ADX']:.0f}",
+                delta="Directionnel" if infos['ADX'] > 25 else "Sans direction",
+                delta_color="normal" if infos['ADX'] > 25 else "off",
+                help="Mesure la FORCE de la tendance (pas la direction).\n• > 40 : tendance très forte (suivre, ne pas contre-trader).\n• 25–40 : tendance saine et exploitable, breakouts fiables.\n• 20–25 : tendance faible, à confirmer.\n• < 20 : marché en range, le RSI et les supports/résistances priment sur les MA.")
+
+# ── Métriques principales ──
+c1, c2, c3, c4, c5, c6 = st.columns(6)
+c1.metric(_mk('prix') + "Prix", f"{prix:,.2f} $",
+          delta=f"{cg_data.get('price_change_24h_pct', 0):.1f}% (24h)" if cg_data else None,
+          help="Prix actuel et variation sur 24h. La couleur du delta (vert/rouge) donne l'humeur du jour.")
+
+# ── Aide RSI structurée ──
+rsi_v = infos['RSI']
+rsi_action = ("Survente extrême — guetter divergence haussière ou capitulation" if rsi_v < 30
+              else "Zone de rebond — entrée potentielle en tendance haussière" if 30 <= rsi_v < 45
+              else "Momentum équilibré — neutre" if 45 <= rsi_v < 60
+              else "Momentum haussier — sain en début de hausse" if 60 <= rsi_v < 70
+              else "Suracheté — risque de correction, prudence pour entrer")
+c2.metric(_mk('rsi') + "RSI (14j)", f"{rsi_v:.1f}",
+          help=f"Force relative 0–100, période 14j (Wilder).\n• 0–30 : SURVENTE — capitulation, rebond statistique probable.\n• 30–45 : ZONE DE REBOND — idéal pour acheter un repli en tendance haussière.\n• 45–60 : neutre, attendre une direction.\n• 60–70 : momentum haussier sain.\n• 70–100 : SURACHETÉ — risque de correction.\n\nLecture actuelle : {rsi_action}.")
+
+# ── Aide MACD enrichie ──
+macd_v = infos['MACD']
+macd_h = infos['MACD_Hist']
+macd_h_prev = df['MACD_Hist'].iloc[-2]
+if macd_h > 0 and macd_h_prev <= 0:
+    macd_action = "Croisement haussier FRAIS — signal d'entrée fort"
+elif macd_h > 0 and macd_h > macd_h_prev:
+    macd_action = "Momentum haussier qui s'accélère — tendance en place"
+elif macd_h > 0 and macd_h < macd_h_prev:
+    macd_action = "Momentum haussier qui décélère — surveiller le retournement"
+elif macd_h < 0 and macd_h_prev >= 0:
+    macd_action = "Croisement baissier FRAIS — sortir ou éviter d'entrer"
+elif macd_h < 0 and macd_h > macd_h_prev:
+    macd_action = "Pression vendeuse qui faiblit — possible retournement en cours"
+else:
+    macd_action = "Momentum baissier qui s'amplifie — éviter d'entrer long"
+c3.metric(_mk('macd') + "MACD Hist", f"{macd_h:.2f}",
+          delta="Haussier" if macd_h > 0 else "Baissier",
+          delta_color="normal" if macd_h > 0 else "inverse",
+          help=f"Histogramme MACD (différence MACD − Signal). Mesure l'accélération du momentum.\n• > 0 et CROISSANT : momentum haussier qui s'accélère (signal d'entrée).\n• > 0 et DÉCROISSANT : momentum haussier qui s'essouffle, retournement possible.\n• < 0 et CROISSANT : baisse qui s'épuise, possible reversal.\n• < 0 et DÉCROISSANT : panique vendeuse, éviter d'entrer.\n• Croisement de 0 vers le positif = signal d'achat classique.\n\nLecture actuelle : {macd_action}.")
+
+# ── Aide ATR enrichie ──
+atr_pct = infos['ATR_Pct']
+atr_action = ("Très faible volatilité — compression, mouvement imminent" if atr_pct < 1.5
+              else "Volatilité modérée — conditions normales" if atr_pct < 3
+              else "Volatilité élevée — élargir les stops" if atr_pct < 5
+              else "Volatilité extrême — taille de position réduite")
+c4.metric(_mk('atr') + "ATR (volatilité)", f"{infos['ATR']:.2f} ({atr_pct:.1f}%)",
+          help=f"Amplitude moyenne d'une bougie sur 14j.\n• Stop loss recommandé : 1 à 1.5 × ATR sous l'entrée pour un swing standard.\n• ATR% < 1.5 : compression, breakout imminent souvent.\n• ATR% 1.5–3 : volatilité normale.\n• ATR% 3–5 : volatilité élevée, stops larges nécessaires.\n• ATR% > 5 : extrême, réduire la taille de position de moitié.\n\nLecture actuelle : {atr_action}.")
+
+# ── Aide Funding enrichie ──
+fund_action = ("Shorts dominants — pression de rachat, rebond possible" if funding < -0.01
+               else "Sain — pas de déséquilibre marqué" if -0.01 <= funding <= 0.03
+               else "Acheteurs un peu chauds — surveiller" if 0.03 < funding <= 0.05
+               else "SURCHAUFFE — purge baissière probable (malus −1 sur score)")
+c5.metric(_mk('funding') + "Funding Rate", f"{funding:.4f}%" if funding != 0 else "N/A",
+          delta="Surchauffe" if funding > 0.05 else ("Shorts paient" if funding < -0.01 else "Sain"),
+          delta_color="inverse" if funding > 0.05 else "normal",
+          help=f"Coût payé toutes les 8h entre traders à effet de levier sur les perpétuels.\n• < -0.01% : shorts paient les longs → carburant pour un rebond.\n• -0.01% à 0.03% : équilibre sain.\n• 0.03% à 0.05% : penchant haussier, début de chauffe.\n• > 0.05% : SURCHAUFFE acheteuse, risque de purge (long squeeze).\n\nLecture actuelle : {fund_action}.")
+
+# ── Aide VWAP enrichie ──
+vwap = infos['VWAP_20']
+ecart_vwap = ((prix - vwap) / vwap) * 100 if vwap > 0 else 0
+vwap_action = ("Très sous le VWAP — achat à prix moyen avantageux" if ecart_vwap < -3
+               else "Sous le VWAP — légère décote" if ecart_vwap < 0
+               else "Sur le VWAP — prix au juste milieu" if ecart_vwap < 1
+               else "Au-dessus du VWAP — premium léger" if ecart_vwap < 5
+               else "Très au-dessus — extension à risque")
+c6.metric(_mk('vwap') + "VWAP 20j", f"{vwap:,.2f} $",
+          delta=f"{ecart_vwap:+.1f}% du prix",
+          delta_color="normal" if ecart_vwap < 0 else "inverse",
+          help=f"Prix moyen pondéré par le volume sur 20 jours = la 'juste valeur' selon le marché.\n• Prix < VWAP : tu achètes moins cher que la moyenne pondérée. Support clé en tendance haussière.\n• Prix > VWAP : prime payée. Résistance dynamique en tendance baissière.\n• Écart >5% : extension du prix, retour vers le VWAP probable.\n\nLecture actuelle : {vwap_action}.")
+
+# ── DÉCISION : setup recommandé ──
+st.markdown("---")
+st.subheader("🎯 Décision de trading")
+
+col_verdict, col_signaux = st.columns([1, 1.4])
+
+with col_verdict:
+    libelle = f"{verdict} — {score_setup:.1f}/10"
+    if couleur == "success":
+        st.success(f"**{libelle}**")
+    elif couleur == "warning":
+        st.warning(f"**{libelle}**")
+    else:
+        st.error(f"**{libelle}**")
+
+    st.markdown(f"**Setup retenu :** {nom_setup}")
+    risque_emoji = {"Modéré": "🟢", "Élevé": "🟠", "Très élevé": "🔴"}.get(niveau_risque, "⚪")
+    st.markdown(f"**Niveau de risque :** {risque_emoji} {niveau_risque}")
+    if zone_reco:
+        st.markdown(f"**Zone d'entrée :** {zone_reco}")
+    st.caption(f"Scores bruts — Pullback {s_pull:.1f} · Breakout {s_break:.1f} · Reversal {s_rev:.1f}")
+
+with col_signaux:
+    st.markdown("🎯 **Lecture du setup — ce qui produit la note :**")
+    for emoji, txt in signaux_reco:
+        st.markdown(f"{emoji} {txt}")
+
+with st.expander("🔍 Comparer les 3 setups en détail"):
+    tab_p, tab_b, tab_r = st.tabs([f"Pullback ({s_pull:.1f})", f"Breakout ({s_break:.1f})", f"Reversal ({s_rev:.1f})"])
+    with tab_p:
+        st.caption("Achat de repli en tendance haussière — le plus haute-probabilité.")
+        for emoji, txt in sig_pull:
+            st.markdown(f"{emoji} {txt}")
+    with tab_b:
+        st.caption("Cassure de résistance avec confirmation de volume — pour suivre une vague.")
+        for emoji, txt in sig_break:
+            st.markdown(f"{emoji} {txt}")
+    with tab_r:
+        st.caption("Retournement contrarian en capitulation — haut risque, à réserver aux extrêmes.")
+        for emoji, txt in sig_rev:
+            st.markdown(f"{emoji} {txt}")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 9 bis. SCANNER MULTI-ACTIFS — remplace les notifications
+# ══════════════════════════════════════════════════════════════════════════════
+
+@st.cache_data(ttl=900, show_spinner=False)
+def scanner_tous_actifs(fng_val):
+    """Calcule régime + setups pour les 14 actifs. Une seule passe, mise en cache 15 min.
+    Note : le funding n'est pas fetché par actif (trop d'appels) — il est mis à 0,
+    ce qui neutralise sa contribution au score Reversal dans le scanner uniquement.
+    """
+    lignes = []
+    for nom_actif, f in repo_fondamental.items():
+        try:
+            d = charger_donnees_prix(f['coingecko_id'], f['ticker_news'])
+            if d.empty or len(d) < 60:
+                continue
+            d = appliquer_analyse_technique(d)
+            fib_s = calculer_fibonacci(d)
+            _, res_s = detecter_supports_resistances(d)
+            reg, emo, pen, _ = detecter_regime(d)
+            sp, _, _ = score_pullback(d, fib_s)
+            sb, _, _ = score_breakout(d, res_s)
+            sr, _, _ = score_reversal(d, 0.0, fng_val, None)
+            n_set, sc, verd, coul, risq = recommander(reg, sp, sb, sr)
+            derniere = d.iloc[-1]
+            lignes.append({
+                "actif": nom_actif,
+                "ticker": f['ticker_news'],
+                "statut": SUIVI.get(nom_actif, ""),
+                "prix": float(derniere['Close']),
+                "regime": reg,
+                "regime_emoji": emo,
+                "setup": n_set,
+                "score": float(sc),
+                "verdict": verd,
+                "couleur": coul,
+                "risque": risq,
+                "rsi": float(derniere['RSI']) if not pd.isna(derniere['RSI']) else None,
+                "adx": float(derniere['ADX']) if not pd.isna(derniere['ADX']) else None,
+            })
+        except Exception:
+            continue
+    return lignes
+
+
+st.markdown("---")
+st.subheader("📡 Scanner Multi-Actifs")
+if SUIVI_SOURCE == "csv":
+    _nb_det = sum(1 for v in SUIVI.values() if v == "detenu")
+    st.caption(f"📄 Liste de suivi chargée depuis **portfolio.csv** — {_nb_det} position(s) détenue(s). "
+               "Mets le CSV à jour sur GitHub, l'app suit automatiquement.")
+else:
+    st.caption("⚠️ Aucun `portfolio.csv` détecté à la racine du repo — liste de suivi par défaut utilisée. "
+               "Dépose le CSV sur GitHub pour piloter tes statuts sans toucher au code.")
+st.caption("Balaye les 14 actifs et remonte ceux dont les indicateurs s'alignent. "
+           "Remplace les alertes : une seule vérification quotidienne au lieu de 14.")
+
+sc_col1, sc_col2 = st.columns([1, 3])
+with sc_col1:
+    lancer_scan = st.button("🔎 Lancer le scan", use_container_width=True)
+with sc_col2:
+    filtre_suivi = st.radio("Filtrer :", ["Ma liste de suivi", "Tous les actifs"],
+                            horizontal=True, label_visibility="collapsed")
+
+if lancer_scan:
+    with st.spinner("Analyse des 14 actifs en cours…"):
+        resultats = scanner_tous_actifs(fng_valeur)
+
+    if not resultats:
+        st.warning("Aucune donnée récupérée. Les sources sont peut-être limitées en requêtes — réessaie dans une minute.")
+    else:
+        if filtre_suivi == "Ma liste de suivi":
+            resultats = [r for r in resultats if r['statut']]
+        resultats.sort(key=lambda r: r['score'], reverse=True)
+
+        # ── Actifs qui s'alignent (le signal principal) ──
+        alignes = [r for r in resultats if r['score'] >= 6.5]
+        a_surveiller = [r for r in resultats if 4.5 <= r['score'] < 6.5]
+
+        if alignes:
+            st.success(f"🎯 **{len(alignes)} actif(s) avec un setup exploitable** (score ≥ 6.5)")
+            for r in alignes:
+                emo_st, lib_st = STATUT_LABEL.get(r['statut'], ("·", "—"))
+                _d = SUIVI_DETAILS.get(r['actif'], {})
+                _pm = _d.get('prix_moyen')
+                _pnl = ""
+                if _pm and pd.notna(_pm) and _pm > 0:
+                    _var = (r['prix'] - _pm) / _pm * 100
+                    _pnl = f" · PRU {_pm:,.4f} $ → **{_var:+.1f}%**"
+                st.markdown(
+                    f"**{emo_st} {r['actif']}** — {r['prix']:,.4f} $ {_pnl}  \n"
+                    f"{r['regime_emoji']} {r['regime']} · **{r['setup']}** · "
+                    f"**{r['score']:.1f}/10** · risque {r['risque']} · "
+                    f"RSI {r['rsi']:.0f} · ADX {r['adx']:.0f}"
+                )
+        else:
+            st.info("Aucun setup à 6.5+ actuellement. C'est une information : pas de signal = pas de trade forcé.")
+
+        if a_surveiller:
+            with st.expander(f"👀 {len(a_surveiller)} actif(s) à surveiller (score 4.5 – 6.5)"):
+                for r in a_surveiller:
+                    emo_st, _ = STATUT_LABEL.get(r['statut'], ("·", "—"))
+                    st.markdown(
+                        f"{emo_st} **{r['actif']}** — {r['prix']:,.4f} $ · "
+                        f"{r['regime_emoji']} {r['regime']} · {r['setup']} · "
+                        f"**{r['score']:.1f}/10** · RSI {r['rsi']:.0f}"
+                    )
+
+        # ── Tableau récapitulatif complet ──
+        with st.expander("📋 Tableau complet du scan"):
+            df_scan = pd.DataFrame([{
+                "Statut": STATUT_LABEL.get(r['statut'], ("·", "—"))[1],
+                "Actif": r['actif'],
+                "Prix ($)": round(r['prix'], 4),
+                "PRU ($)": (round(SUIVI_DETAILS.get(r['actif'], {}).get('prix_moyen'), 4)
+                            if pd.notna(SUIVI_DETAILS.get(r['actif'], {}).get('prix_moyen', float('nan')))
+                            else None),
+                "P&L %": (round((r['prix'] - SUIVI_DETAILS[r['actif']]['prix_moyen'])
+                                / SUIVI_DETAILS[r['actif']]['prix_moyen'] * 100, 1)
+                          if (r['actif'] in SUIVI_DETAILS
+                              and pd.notna(SUIVI_DETAILS[r['actif']].get('prix_moyen', float('nan')))
+                              and SUIVI_DETAILS[r['actif']].get('prix_moyen', 0) > 0)
+                          else None),
+                "Régime": r['regime'],
+                "Setup": r['setup'],
+                "Score": round(r['score'], 1),
+                "Verdict": r['verdict'],
+                "Risque": r['risque'],
+                "RSI": round(r['rsi']) if r['rsi'] else None,
+                "ADX": round(r['adx']) if r['adx'] else None,
+            } for r in resultats])
+            st.dataframe(df_scan, use_container_width=True, hide_index=True)
+
+        st.caption("⏱️ Résultats mis en cache 15 minutes. Le funding n'est pas intégré au scan "
+                   "(trop d'appels réseau) — vérifie-le sur la fiche de l'actif avant d'entrer.")
+else:
+    st.caption("👆 Clique sur *Lancer le scan* pour analyser tous les actifs de ta liste. "
+               "Modifie le dictionnaire `SUIVI` en haut du fichier pour ajuster tes statuts "
+               "(detenu / surveillance / sorti).")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 10. GRAPHIQUE PRINCIPAL — PRIX + INDICATEURS
+# ══════════════════════════════════════════════════════════════════════════════
+
+st.markdown("---")
+st.caption("📊 **Lecture seule** — les graphiques ne calculent pas la note. Ils servent à *valider visuellement* "
+           "le signal : la cassure est-elle nette ? le volume était-il présent ? le rebond est-il crédible ?")
+
+tab_chart, tab_oscillateurs, tab_ichimoku, tab_volume = st.tabs(
+    ["📈 Prix & Tendance", "📉 Oscillateurs", "☁️ Ichimoku", "📊 Volume & OBV"]
+)
+
+with tab_chart:
+    with st.expander("📖 Comment lire ce graphique", expanded=False):
+        st.markdown("""
+**Chandeliers japonais** : chaque bougie = 1 jour. Verte = clôture > ouverture. Rouge = clôture < ouverture. La mèche montre les extrêmes.
+
+**Ligne cyan (MA50)** : moyenne mobile 50 jours. Support/résistance dynamique en swing. Acheter sous MA50 en tendance haussière = entrée sur repli.
+
+**Ligne orange (MA200)** : moyenne mobile 200 jours. Frontière entre régime haussier (prix au-dessus) et baissier (en-dessous). Référence des institutionnels.
+
+**Bandes pointillées (Bollinger)** : enveloppe à ±2 écarts-types autour de la MA20.
+• Prix sous la bande basse = excès baissier statistique (rebond probable).
+• Prix sur la bande haute = excès haussier (correction probable).
+• Bandes qui se resserrent = compression → mouvement explosif imminent.
+
+**Ligne jaune pointillée (VWAP 20j)** : prix moyen pondéré par le volume. Support clé en tendance.
+
+**Lignes Fibonacci** : niveaux de retracement statistiques. 38.2%, 50% et 61.8% sont les zones de rebond les plus fréquentes après une vague de hausse ou de baisse.
+
+**Lignes S1/S2/S3 (vertes)** : supports détectés sur les creux locaux. **R1/R2/R3 (rouges)** : résistances sur les sommets locaux.
+
+**Histogramme inférieur (Volume)** : vert quand bougie haussière, rouge quand baissière. La ligne blanche = volume moyen 20j. Un volume > 1.5× la moyenne valide un mouvement.
+        """)
+
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03,
+                        row_heights=[0.75, 0.25],
+                        subplot_titles=("", "Volume"))
+
+    # Chandelier
+    fig.add_trace(go.Candlestick(
+        x=df['Date'], open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'],
+        name="Prix", hoverinfo="none"
+    ), row=1, col=1)
+
+    # Moyennes mobiles
+    fig.add_trace(go.Scatter(x=df['Date'], y=df['MA_50'], line=dict(color='cyan', width=1.5),
+                             name="MA50", hovertemplate="MA50: %{y:,.2f}$<extra></extra>"), row=1, col=1)
+    if df['MA_200'].notna().sum() > 0:
+        fig.add_trace(go.Scatter(x=df['Date'], y=df['MA_200'], line=dict(color='orange', width=1.5),
+                                 name="MA200", hovertemplate="MA200: %{y:,.2f}$<extra></extra>"), row=1, col=1)
+
+    # Bollinger
+    fig.add_trace(go.Scatter(x=df['Date'], y=df['BB_Basse'], line=dict(color='rgba(231,76,60,0.6)', dash='dash', width=1),
+                             name="BB Basse", hovertemplate="BB Basse: %{y:,.2f}$<extra></extra>"), row=1, col=1)
+    fig.add_trace(go.Scatter(x=df['Date'], y=df['BB_Haute'], line=dict(color='rgba(46,204,113,0.6)', dash='dash', width=1),
+                             name="BB Haute", fill='tonexty', fillcolor='rgba(100,100,100,0.05)',
+                             hovertemplate="BB Haute: %{y:,.2f}$<extra></extra>"), row=1, col=1)
+
+    # VWAP
+    fig.add_trace(go.Scatter(x=df['Date'], y=df['VWAP_20'], line=dict(color='yellow', width=1, dash='dot'),
+                             name="VWAP 20j", hovertemplate="VWAP: %{y:,.2f}$<extra></extra>"), row=1, col=1)
+
+    # Fibonacci
+    fib_colors = ['rgba(255,255,255,0.3)', 'rgba(46,204,113,0.3)', 'rgba(46,204,113,0.4)',
+                  'rgba(241,196,15,0.4)', 'rgba(231,76,60,0.4)', 'rgba(231,76,60,0.3)', 'rgba(255,255,255,0.3)']
+    for (label, level), color in zip(niveaux_fib.items(), fib_colors):
+        fig.add_hline(y=level, line_dash="dot", line_color=color, annotation_text=f"Fib {label}",
+                      annotation_position="right", row=1, col=1)
+
+    # Supports / Résistances
+    for i, sup in enumerate(liste_supports):
+        fig.add_hline(y=sup, line_dash="dot", line_color="rgba(46,204,113,0.5)",
+                      annotation_text=f"S{i+1}", row=1, col=1)
+    for i, res in enumerate(liste_resistances):
+        fig.add_hline(y=res, line_dash="dot", line_color="rgba(231,76,60,0.5)",
+                      annotation_text=f"R{i+1}", row=1, col=1)
+
+    # Volume
+    colors_vol = ['rgba(46,204,113,0.5)' if c >= o else 'rgba(231,76,60,0.5)'
+                  for c, o in zip(df['Close'], df['Open'])]
+    fig.add_trace(go.Bar(x=df['Date'], y=df['Volume'], name="Volume",
+                         marker_color=colors_vol, opacity=0.7), row=2, col=1)
+    fig.add_trace(go.Scatter(x=df['Date'], y=df['Vol_MA_20'], line=dict(color='white', width=1),
+                             name="Vol MA20"), row=2, col=1)
+
+    fig.update_layout(xaxis_rangeslider_visible=False, template="plotly_dark",
+                      height=650, margin=dict(l=10, r=10, t=30, b=10), hovermode="x unified",
+                      showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=1.02))
+    st.plotly_chart(fig, use_container_width=True)
+
+
+with tab_oscillateurs:
+    with st.expander("📖 Comment lire ces oscillateurs", expanded=False):
+        st.markdown("""
+**RSI (Relative Strength Index)** — violet : oscillateur 0–100.
+• < 30 = survente (rebond statistique probable).
+• 30–45 = zone de rebond idéale en tendance haussière.
+• 45–60 = neutre.
+• 60–70 = momentum haussier sain.
+• > 70 = suracheté (correction probable).
+Méthode Wilder appliquée (lissage exponentiel correct).
+
+**Stochastic RSI** — bleu (%K) et orange (%D) : RSI appliqué à lui-même.
+• Croisement %K au-dessus de %D en zone basse (<20) = signal d'achat fort.
+• Plus réactif que le RSI brut, idéal pour timing fin d'entrée/sortie.
+
+**MACD** — bleu (ligne MACD) et orange (signal). Barres = histogramme.
+• MACD coupe le signal vers le haut → signal d'achat.
+• MACD coupe le signal vers le bas → signal de vente.
+• Histogramme positif et croissant = momentum haussier qui s'accélère.
+• Histogramme négatif et croissant = pression vendeuse qui faiblit (reversal possible).
+
+**ADX** — blanc : force de la tendance (pas la direction).
+• > 25 = tendance forte et exploitable.
+• < 20 = marché en range, éviter les stratégies de suivi.
+**+DI** (vert) > **-DI** (rouge) = direction haussière. Inverse = baissière.
+        """)
+
+    fig_osc = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.05,
+                            subplot_titles=("RSI (14) & Stochastic RSI", "MACD", "ADX"))
+
+    # RSI
+    fig_osc.add_trace(go.Scatter(x=df['Date'], y=df['RSI'], line=dict(color='#8e44ad', width=1.5),
+                                 name="RSI"), row=1, col=1)
+    fig_osc.add_trace(go.Scatter(x=df['Date'], y=df['StochRSI_K'], line=dict(color='#3498db', width=1),
+                                 name="StochRSI %K"), row=1, col=1)
+    fig_osc.add_trace(go.Scatter(x=df['Date'], y=df['StochRSI_D'], line=dict(color='#e67e22', width=1, dash='dash'),
+                                 name="StochRSI %D"), row=1, col=1)
+    fig_osc.add_hline(y=70, line_dash="dash", line_color="rgba(231,76,60,0.5)", row=1, col=1)
+    fig_osc.add_hline(y=30, line_dash="dash", line_color="rgba(46,204,113,0.5)", row=1, col=1)
+
+    # MACD
+    macd_colors = ['rgba(46,204,113,0.7)' if v >= 0 else 'rgba(231,76,60,0.7)' for v in df['MACD_Hist']]
+    fig_osc.add_trace(go.Bar(x=df['Date'], y=df['MACD_Hist'], name="MACD Hist",
+                             marker_color=macd_colors), row=2, col=1)
+    fig_osc.add_trace(go.Scatter(x=df['Date'], y=df['MACD'], line=dict(color='#3498db', width=1.5),
+                                 name="MACD"), row=2, col=1)
+    fig_osc.add_trace(go.Scatter(x=df['Date'], y=df['MACD_Signal'], line=dict(color='#e67e22', width=1),
+                                 name="Signal"), row=2, col=1)
+
+    # ADX
+    fig_osc.add_trace(go.Scatter(x=df['Date'], y=df['ADX'], line=dict(color='white', width=2),
+                                 name="ADX"), row=3, col=1)
+    fig_osc.add_trace(go.Scatter(x=df['Date'], y=df['Plus_DI'], line=dict(color='#2ecc71', width=1),
+                                 name="+DI"), row=3, col=1)
+    fig_osc.add_trace(go.Scatter(x=df['Date'], y=df['Minus_DI'], line=dict(color='#e74c3c', width=1),
+                                 name="-DI"), row=3, col=1)
+    fig_osc.add_hline(y=25, line_dash="dash", line_color="rgba(255,255,255,0.3)", row=3, col=1,
+                      annotation_text="Seuil tendance")
+
+    fig_osc.update_layout(template="plotly_dark", height=700, hovermode="x unified",
+                          margin=dict(l=10, r=10, t=30, b=10))
+    st.plotly_chart(fig_osc, use_container_width=True)
+
+
+with tab_ichimoku:
+    with st.expander("📖 Comment lire l'Ichimoku", expanded=False):
+        st.markdown("""
+L'Ichimoku Kinko Hyo est un système complet qui donne tendance, momentum, supports et signaux dans un seul graphique.
+
+**Tenkan (bleu, période 9)** : signal court terme.
+**Kijun (rouge, période 26)** : référence moyen terme, support/résistance dynamique.
+• Tenkan > Kijun = momentum positif (signal d'achat).
+• Tenkan < Kijun = momentum négatif (signal de vente).
+
+**Nuage (Senkou A et B)** : zone de support/résistance projetée 26 jours en avant.
+• Prix au-dessus du nuage = tendance HAUSSIÈRE confirmée.
+• Prix dans le nuage = zone neutre, indécision.
+• Prix sous le nuage = tendance BAISSIÈRE confirmée.
+• Nuage vert (Senkou A > B) = biais haussier. Rouge = biais baissier.
+• Épaisseur du nuage = force du support/résistance.
+
+**Signal d'achat complet** : prix au-dessus du nuage + Tenkan > Kijun + nuage vert = configuration idéale pour entrer long.
+        """)
+
+    fig_ichi = go.Figure()
+    fig_ichi.add_trace(go.Candlestick(x=df['Date'], open=df['Open'], high=df['High'],
+                                       low=df['Low'], close=df['Close'], name="Prix", hoverinfo="none"))
+    fig_ichi.add_trace(go.Scatter(x=df['Date'], y=df['Tenkan'], line=dict(color='#3498db', width=1),
+                                  name="Tenkan (9)"))
+    fig_ichi.add_trace(go.Scatter(x=df['Date'], y=df['Kijun'], line=dict(color='#e74c3c', width=1),
+                                  name="Kijun (26)"))
+    fig_ichi.add_trace(go.Scatter(x=df['Date'], y=df['Senkou_A'], line=dict(color='rgba(46,204,113,0.5)', width=0.5),
+                                  name="Senkou A"))
+    fig_ichi.add_trace(go.Scatter(x=df['Date'], y=df['Senkou_B'], line=dict(color='rgba(231,76,60,0.5)', width=0.5),
+                                  name="Senkou B", fill='tonexty', fillcolor='rgba(100,100,100,0.1)'))
+
+    fig_ichi.update_layout(template="plotly_dark", height=500, hovermode="x unified",
+                           xaxis_rangeslider_visible=False, margin=dict(l=10, r=10, t=10, b=10))
+    st.plotly_chart(fig_ichi, use_container_width=True)
+
+    # Interprétation Ichimoku
+    ichi_signals = []
+    if prix > infos['Tenkan'] and prix > infos['Kijun']:
+        ichi_signals.append("✅ Prix au-dessus du Tenkan et du Kijun → biais haussier.")
+    elif prix < infos['Tenkan'] and prix < infos['Kijun']:
+        ichi_signals.append("🔴 Prix sous le Tenkan et le Kijun → biais baissier.")
+    if not pd.isna(infos.get('Senkou_A')) and not pd.isna(infos.get('Senkou_B')):
+        if prix > max(infos['Senkou_A'], infos['Senkou_B']):
+            ichi_signals.append("✅ Prix au-dessus du nuage → tendance haussière confirmée.")
+        elif prix < min(infos['Senkou_A'], infos['Senkou_B']):
+            ichi_signals.append("🔴 Prix dans/sous le nuage → tendance baissière ou neutre.")
+    if ichi_signals:
+        for sig in ichi_signals:
+            st.write(sig)
+
+
+with tab_volume:
+    with st.expander("📖 Comment lire le volume et l'OBV", expanded=False):
+        st.markdown("""
+Le volume confirme (ou invalide) tout mouvement de prix. Un mouvement sans volume est suspect.
+
+**OBV (On-Balance Volume)** — bleu : volume cumulé signé (+ si bougie haussière, − si baissière).
+• OBV qui monte alors que le prix stagne = ACCUMULATION discrète (signal d'achat institutionnel).
+• OBV qui baisse alors que le prix stagne = DISTRIBUTION discrète (vendeurs invisibles).
+• Divergence OBV/Prix : si le prix fait un nouveau plus haut sans que l'OBV suive, la hausse est artificielle.
+
+**OBV MA20** — orange : moyenne mobile de l'OBV. L'OBV au-dessus de sa MA = flux acheteur dominant.
+
+**Quote Volume ($)** — barres bleues : volume échangé en dollars sur 24h. Permet de comparer la liquidité réelle entre périodes (mieux que le volume en unités, biaisé par le prix).
+
+**Lecture rapide** :
+• Cassure + volume élevé = mouvement crédible, à suivre.
+• Cassure + volume faible = fakeout probable, attendre confirmation.
+• Volume climax (> 2× la moyenne) après une longue baisse = signal de capitulation, plancher possible.
+        """)
+
+    fig_vol = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.05,
+                            subplot_titles=("On-Balance Volume (OBV)", "Quote Volume ($)"))
+
+    fig_vol.add_trace(go.Scatter(x=df['Date'], y=df['OBV'], line=dict(color='#3498db', width=1.5),
+                                 name="OBV"), row=1, col=1)
+    fig_vol.add_trace(go.Scatter(x=df['Date'], y=df['OBV_MA'], line=dict(color='orange', width=1, dash='dash'),
+                                 name="OBV MA20"), row=1, col=1)
+
+    fig_vol.add_trace(go.Bar(x=df['Date'], y=df['Quote_volume'], name="Volume $",
+                             marker_color='rgba(52,152,219,0.5)'), row=2, col=1)
+
+    fig_vol.update_layout(template="plotly_dark", height=500, hovermode="x unified",
+                          margin=dict(l=10, r=10, t=30, b=10))
+    st.plotly_chart(fig_vol, use_container_width=True)
+
+    # Interprétation OBV
+    if infos['OBV'] > infos['OBV_MA']:
+        st.write("✅ OBV au-dessus de sa moyenne → flux acheteur dominant (accumulation).")
+    else:
+        st.write("🔴 OBV sous sa moyenne → flux vendeur dominant (distribution).")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 11. TABLEAU DE BORD DÉRIVÉS
+# ══════════════════════════════════════════════════════════════════════════════
+
+st.markdown("---")
+st.header("⚡ Marché des Dérivés")
+st.caption("📊 **Contexte** — seul le Funding entre dans le score (setup Reversal). Le reste éclaire le positionnement du levier.")
+
+d1, d2, d3, d4 = st.columns(4)
+d1.metric("Open Interest", f"{open_interest_usd/1e9:.2f}B $" if open_interest_usd > 0 else "N/A",
+          help="Montant total engagé sur les contrats à terme (agrégé tous exchanges via CoinGecko). En hausse = nouveaux capitaux entrent. Chute brutale = liquidations/débouclage de positions.")
+d2.metric("Funding Rate", f"{funding:.4f}%" if funding != 0 else "N/A",
+          delta="Surchauffe leviers" if funding > 0.05 else ("Shorts paient" if funding < -0.01 else "Neutre"),
+          delta_color="inverse" if funding > 0.05 else "normal",
+          help="Coût du levier toutes les 8h. >0.05% = excès d'acheteurs (malus de −1 sur le score). <−0.01% = shorts en souffrance → carburant pour un rebond.")
+d3.metric("Volume Dérivés 24h", f"{deriv_volume/1e9:.1f}B $" if deriv_volume > 0 else "N/A",
+          help="Volume échangé sur les contrats à terme sur 24h. Un volume élevé confirme l'intérêt des traders à effet de levier et la liquidité du marché.")
+if ls_ratio is not None:
+    d4.metric("Ratio Long/Short", f"{ls_ratio:.2f}",
+              delta="Majorité Long" if ls_ratio > 1.2 else ("Majorité Short" if ls_ratio < 0.85 else "Équilibré"),
+              help="Comptes longs ÷ comptes courts. <0.85 = beaucoup de shorts → un short squeeze peut propulser le prix. >1.2 = excès d'optimisme, risque de correction.")
+else:
+    d4.metric("Ratio Long/Short", "N/A",
+              help="Donnée temporairement indisponible (source restreinte depuis le serveur). Ce champ n'impacte pas le score quand il est absent.")
+
+with st.expander("📖 Lecture des dérivés"):
     st.markdown("""
-    * **Ligne Cyan (MM50) :** Moyenne Mobile 50j (Tendance).
-    * **Pointillés Verts (Bollinger Haute) :** Zone d'euphorie.
-    * **Pointillés Rouges (Bollinger Basse) :** Zone de sous-évaluation statistique.
+**Open Interest** : capital total engagé sur les contrats perpétuels. En forte hausse avec un prix qui monte = tendance saine. Chute brutale = liquidations.
+
+**Funding Rate** : coût payé toutes les 8h entre longs et shorts. >0.05% = surchauffe acheteuse (malus appliqué au score). <−0.01% = shorts en souffrance (potentiel squeeze haussier).
+
+**Volume Dérivés** : confirme la conviction. Un mouvement de prix sur fort volume dérivés est plus fiable.
+
+**Ratio Long/Short** : <0.85 = majorité de shorts → carburant pour un short squeeze. >1.2 = excès d'optimisme.
+
+*Note : les données dérivés sont agrégées via CoinGecko (tous exchanges confondus) pour rester accessibles depuis n'importe quel serveur.*
     """)
 
-# --- GRAPHICS PLOTLY RE-VÉRIFIÉ ---
-fig = go.Figure()
-fig.add_trace(go.Candlestick(x=df['Date'], open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'], name="Prix", hoverinfo="none"))
+# ══════════════════════════════════════════════════════════════════════════════
+# 12. CONTEXTE MACRO & MARCHÉ GLOBAL
+# ══════════════════════════════════════════════════════════════════════════════
 
-# MM50 avec explication réintégrée
-fig.add_trace(go.Scatter(
-    x=df['Date'], y=df['Moyenne_50'], line=dict(color='cyan', width=2), name="MM50",
-    hovertemplate="<b>Tendance (MM50)</b><br>Prix moyen 50j : %{y:,.2f} $<br>➔ Filtre : Idéal d'acheter sous cette ligne.<extra></extra>"
-))
+st.markdown("---")
+st.header("🌐 Contexte Macro & Marché Global")
+st.caption("📊 **Contexte** — seul le Fear & Greed entre dans le score (setup Reversal). Le reste sert à qualifier le climat général.")
 
-# Bollinger Basse avec explication réintégrée
-fig.add_trace(go.Scatter(
-    x=df['Date'], y=df['Bollinger_Basse'], line=dict(color='rgba(231, 76, 60, 0.8)', dash='dash', width=1.5), name="Bande Basse",
-    hovertemplate="<b>Volatilité (Bande Basse)</b><br>Seuil : %{y:,.2f} $<br>➔ Statut : Si le prix est ici, la baisse est statistiquement excessive.<extra></extra>"
-))
+m1, m2, m3, m4, m5 = st.columns(5)
+m1.metric("Fear & Greed", f"{fng_valeur}/100", delta=fng_statut,
+          delta_color="inverse" if fng_valeur < 30 else ("normal" if fng_valeur > 70 else "off"),
+          help="Indice de sentiment 0–100. <25 = peur extrême (historiquement de bons points d'achat). >75 = avidité extrême (prudence, sommet possible). Contrarian : on achète dans la peur.")
 
-# Bollinger Haute avec explication réintégrée
-fig.add_trace(go.Scatter(
-    x=df['Date'], y=df['Bollinger_Haute'], line=dict(color='rgba(46, 204, 113, 0.8)', dash='dash', width=1.5), name="Bande Haute",
-    hovertemplate="<b>Volatilité (Bande Haute)</b><br>Seuil : %{y:,.2f} $<br>➔ Statut : Zone de surchauffe haussière. Éviter d'acheter ici.<extra></extra>"
-))
+if global_data and global_data.get('btc_dominance', 0) > 0:
+    m2.metric("Dominance BTC", f"{global_data.get('btc_dominance', 0):.1f}%",
+              help="Part du BTC dans la capitalisation crypto totale. En hausse = capitaux qui fuient les altcoins vers le BTC (défavorable aux alts). En baisse = potentielle 'alt-season'.")
+    m3.metric("Cap. Marché Totale", f"${global_data.get('total_market_cap', 0)/1e12:.2f}T",
+              delta=f"{global_data.get('market_cap_change_24h_pct', 0):.1f}% (24h)",
+              help="Capitalisation de tout le marché crypto. Sa tendance globale donne le climat : marché haussier (risk-on) ou baissier (risk-off).")
+    m4.metric("Volume Global 24h", f"${global_data.get('total_volume_24h', 0)/1e9:.0f}B",
+              help="Volume total échangé sur 24h, tous actifs confondus. Un volume en hausse confirme la conviction derrière un mouvement de marché.")
+    m5.metric("Dominance ETH", f"{global_data.get('eth_dominance', 0):.1f}%",
+              help="Part de l'Ethereum dans la capitalisation totale. Une hausse signale souvent un appétit pour la DeFi et les altcoins de qualité.")
+else:
+    m2.metric("Dominance BTC", "N/A",
+              help="Donnée temporairement indisponible (limite de requêtes CoinGecko). Rafraîchis dans une minute.")
+    m3.metric("Cap. Marché Totale", "N/A",
+              help="Donnée temporairement indisponible (limite de requêtes CoinGecko). Rafraîchis dans une minute.")
+    m4.metric("Volume Global 24h", "N/A",
+              help="Donnée temporairement indisponible (limite de requêtes CoinGecko). Rafraîchis dans une minute.")
+    m5.metric("Dominance ETH", "N/A",
+              help="Donnée temporairement indisponible (limite de requêtes CoinGecko). Rafraîchis dans une minute.")
 
-if liste_supports:
-    for i, sup in enumerate(liste_supports): fig.add_hline(y=sup, line_dash="dot", line_color="rgba(46, 204, 113, 0.4)", annotation_text=f"Support {i+1}")
-if liste_resistances:
-    for i, res in enumerate(liste_resistances): fig.add_hline(y=res, line_dash="dot", line_color="rgba(231, 76, 60, 0.4)", annotation_text=f"Resistance {i+1}")
+# Historique Fear & Greed (mini-graphique)
+if fng_historique:
+    fng_vals = [v for v, _ in fng_historique]
+    fng_fig = go.Figure()
+    fng_fig.add_trace(go.Scatter(y=fng_vals[::-1], mode='lines+markers',
+                                  line=dict(color='#f39c12', width=2),
+                                  marker=dict(size=3), name="FNG"))
+    fng_fig.add_hline(y=30, line_dash="dash", line_color="rgba(46,204,113,0.5)", annotation_text="Peur extrême")
+    fng_fig.add_hline(y=70, line_dash="dash", line_color="rgba(231,76,60,0.5)", annotation_text="Avidité extrême")
+    fng_fig.update_layout(template="plotly_dark", height=200, margin=dict(l=10, r=10, t=10, b=10),
+                          xaxis_title="Jours (30j)", yaxis_title="FNG", showlegend=False)
+    st.plotly_chart(fng_fig, use_container_width=True)
 
-fig.update_layout(xaxis_rangeslider_visible=False, template="plotly_dark", height=500, margin=dict(l=10, r=10, t=10, b=10), hovermode="x")
-st.plotly_chart(fig, use_container_width=True)
+with st.expander("📖 Grille de lecture macro"):
+    st.markdown("""
+**Fear & Greed < 25** : Peur extrême historiquement corrélée aux points bas locaux. Signal d'accumulation.
 
-# --- BLOC FONDAMENTAL ---
-st.divider()
-st.header("🌐 Analyse Fondamentale & Contexte Global")
-col_m1, col_m2 = st.columns([1, 2])
-col_m1.metric(label="Fear & Greed Index", value=f"{fng_valeur}/100", delta=fng_statut, delta_color="inverse")
-col_m2.write("**Règle macro automatique :** Sentiment global intégré.")
+**BTC Dominance en hausse** : Les capitaux quittent les altcoins pour le BTC → phase de « flight to quality ». Défavorable aux altcoins.
 
+**BTC Dominance en baisse** : Capital qui ruisselle vers les altcoins → phase d'alt-season potentielle.
+
+**Corrélations clés** : BTC est inversement corrélé au DXY (dollar fort = BTC faible) et positivement corrélé à la liquidité M2 globale. En période de hausse des taux réels, les actifs risqués (crypto incluse) souffrent.
+    """)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 13. FICHE FONDAMENTALE DE L'ACTIF
+# ══════════════════════════════════════════════════════════════════════════════
+
+st.markdown("---")
+st.header(f"📋 Fiche Fondamentale — {choix}")
+st.caption("📊 **Lecture seule** — n'entre pas dans la note. À croiser avec les outils de due diligence en bas de page.")
+
+def fmt_milliards(v):
+    return f"${v/1e9:.1f}B" if v and v > 0 else "N/A"
+
+# Données CoinGecko
+if cg_data and cg_data.get('market_cap', 0) > 0:
+    fg1, fg2, fg3, fg4 = st.columns(4)
+    fg1.metric("Market Cap", fmt_milliards(cg_data.get('market_cap', 0)),
+               help="Capitalisation totale = prix × offre en circulation. Mesure la taille de l'actif. >100B = large cap (BTC, ETH), <1B = small cap plus volatil.")
+    fg2.metric("Volume 24h", fmt_milliards(cg_data.get('total_volume_24h', 0)),
+               help="Montant échangé sur 24h. Un volume élevé = forte liquidité et intérêt. Un ratio Volume/MarketCap élevé peut signaler un mouvement imminent.")
+
+    max_s = cg_data.get('max_supply')
+    circ_s = cg_data.get('circulating_supply', 0)
+    if max_s and max_s > 0:
+        fg3.metric("Offre en circulation", f"{circ_s/max_s*100:.1f}% du max",
+                   help="Part de l'offre maximale déjà émise. Proche de 100% = peu d'inflation future (ex: BTC). Faible = risque de dilution par émission de nouveaux jetons.")
+    else:
+        fg3.metric("Offre en circulation", f"{circ_s:,.0f}" if circ_s else "N/A",
+                   help="Nombre de jetons actuellement en circulation. Sans offre maximale, l'actif peut être inflationniste.")
+
+    fg4.metric("Distance à l'ATH", f"{cg_data.get('ath_change_pct', 0):.1f}%",
+               delta=f"ATH: {cg_data.get('ath', 0):,.2f}$",
+               help="Écart par rapport au plus haut historique (All-Time High). −80% = l'actif a perdu 80% depuis son sommet. Indique le potentiel de récupération vs le risque.")
+
+    st.subheader("📈 Performance")
+    perf1, perf2, perf3, perf4 = st.columns(4)
+    perf1.metric("24h", f"{cg_data.get('price_change_24h_pct', 0):+.1f}%",
+               help="Variation sur 24h. Donne l'humeur immédiate du marché mais reste du bruit sur un horizon swing. Un écart fort (>10%) signale un catalyseur ou une liquidation en cours.")
+    perf2.metric("7 jours", f"{cg_data.get('price_change_7d_pct', 0):+.1f}%",
+               help="Variation hebdomadaire — l'horizon le plus pertinent pour du swing. Compare-la à celle du BTC : si l'actif surperforme nettement, il capte un narratif ; s'il sous-performe en marché haussier, méfiance (dilution, désaffection).")
+    perf3.metric("30 jours", f"{cg_data.get('price_change_30d_pct', 0):+.1f}%",
+               help="Variation mensuelle — révèle la tendance de fond réelle. Un actif à +30% sur 30j est étendu (attendre un repli). À -30%, vérifier si c'est une correction saine ou une dégradation structurelle (déblocages, perte de part de marché).")
+    perf4.metric("1 an", f"{cg_data.get('price_change_1y_pct', 0):+.1f}%",
+               help="Performance annuelle — mesure la création de valeur réelle. Un actif négatif sur 1 an alors que le marché monte a un problème de fond (offre, concurrence, narratif mort) : le graphique ne le dira pas, seuls les revenus et le vesting l'expliquent.")
+else:
+    st.warning("⏳ Données fondamentales temporairement indisponibles (limite de requêtes CoinGecko). Rafraîchis la page dans 1 minute.")
+
+# Fiches texte
 f_col1, f_col2, f_col3 = st.columns(3)
-f_col1.markdown(f"### 📊 Tokenomics & Offre\n{fiche['tokenomics']}")
-f_col2.markdown(f"### 🗺️ Catalyseurs & Roadmap\n{fiche['roadmap']}")
-f_col3.markdown(f"### 📈 Profil de Sensibilité\n{fiche['sensibilite']}")
+f_col1.markdown(f"### 📊 Tokenomics\n{fiche['tokenomics']}")
+f_col2.markdown(f"### 🗺️ Roadmap\n{fiche['roadmap']}")
+f_col3.markdown(f"### 📈 Sensibilité\n{fiche['sensibilite']}")
 
-# --- BLOC ACTUALITÉS ULTRA-STABLES ---
-st.divider()
-st.header(f"📰 Dernières Actualités Fondamentales : {choix.split()[0]}")
+# ══════════════════════════════════════════════════════════════════════════════
+# 14. RÉSUMÉ TECHNIQUE RAPIDE
+# ══════════════════════════════════════════════════════════════════════════════
 
-articles = charger_actualites(fiche['ticker_news'])
+st.markdown("---")
+st.header("🔍 Synthèse Technique")
+st.caption("📊 **Lecture seule** — cette synthèse compte les signaux pour te donner une vue d'ensemble. Elle n'alimente PAS la note du setup.")
 
-if not articles:
-    articles = fiche["fallback_news"]
-    st.caption("🔄 *Flux de secours actif : Redirection vers les plateformes d'analyse de fond en continu.*")
+# ── SYNTHÈSE GLOBALE : phrase descriptive ──
+nb_bull, nb_bear, nb_neutre = 0, 0, 0
+analyses = {"tendance": [], "momentum": [], "volatilite": [], "force": []}
 
-n_cols = st.columns(len(articles))
-for idx, art in enumerate(articles):
-    with n_cols[idx]:
-        if art.get('imageurl'):
-            st.image(art['imageurl'], use_container_width=True)
-        st.markdown(f"#### {art['title']}")
-        st.write(art['body'])
-        if art.get('url'):
-            st.link_button("Ouvrir le flux live ↗", art['url'])
+# Tendance
+if prix > infos['MA_50']:
+    analyses["tendance"].append(("✅", "Prix > MA50", "soutenu court terme"))
+    nb_bull += 1
+else:
+    analyses["tendance"].append(("🔴", "Prix < MA50", "sous pression court terme"))
+    nb_bear += 1
+
+if not pd.isna(infos.get('MA_200')):
+    if prix > infos['MA_200']:
+        analyses["tendance"].append(("✅", "Prix > MA200", "régime de fond haussier"))
+        nb_bull += 1
+    else:
+        analyses["tendance"].append(("🔴", "Prix < MA200", "régime de fond baissier"))
+        nb_bear += 1
+    if infos['MA_50'] > infos['MA_200']:
+        analyses["tendance"].append(("✅", "Golden Cross (MA50 > MA200)", "structure haussière confirmée"))
+        nb_bull += 1
+    else:
+        analyses["tendance"].append(("🔴", "Death Cross (MA50 < MA200)", "structure baissière confirmée"))
+        nb_bear += 1
+
+# Momentum
+if infos['RSI'] < 30:
+    analyses["momentum"].append(("✅", f"RSI {infos['RSI']:.0f}", "survendu, rebond probable"))
+    nb_bull += 1
+elif infos['RSI'] > 70:
+    analyses["momentum"].append(("🔴", f"RSI {infos['RSI']:.0f}", "suracheté, correction probable"))
+    nb_bear += 1
+elif 40 <= infos['RSI'] <= 60:
+    analyses["momentum"].append(("⚪", f"RSI {infos['RSI']:.0f}", "neutre"))
+    nb_neutre += 1
+else:
+    analyses["momentum"].append(("⚪", f"RSI {infos['RSI']:.0f}", "zone intermédiaire"))
+    nb_neutre += 1
+
+if infos['MACD'] > infos['MACD_Signal']:
+    analyses["momentum"].append(("✅", "MACD > Signal", "momentum haussier"))
+    nb_bull += 1
+else:
+    analyses["momentum"].append(("🔴", "MACD < Signal", "momentum baissier"))
+    nb_bear += 1
+
+# Volatilité
+if prix <= infos['BB_Basse']:
+    analyses["volatilite"].append(("✅", "Prix ≤ Bollinger Basse", "excès baissier statistique"))
+    nb_bull += 1
+elif prix >= infos['BB_Haute']:
+    analyses["volatilite"].append(("🔴", "Prix ≥ Bollinger Haute", "excès haussier statistique"))
+    nb_bear += 1
+else:
+    analyses["volatilite"].append(("⚪", "Prix dans les bandes", "volatilité normale"))
+    nb_neutre += 1
+
+# Force tendance
+if infos['ADX'] > 25:
+    if infos['Plus_DI'] > infos['Minus_DI']:
+        analyses["force"].append(("✅", f"ADX {infos['ADX']:.0f}", "tendance haussière forte"))
+        nb_bull += 1
+    else:
+        analyses["force"].append(("🔴", f"ADX {infos['ADX']:.0f}", "tendance baissière forte"))
+        nb_bear += 1
+else:
+    analyses["force"].append(("⚪", f"ADX {infos['ADX']:.0f}", "marché sans direction"))
+    nb_neutre += 1
+
+# Synthèse en une phrase
+total = nb_bull + nb_bear + nb_neutre
+pct_bull = (nb_bull / total) * 100 if total else 0
+if pct_bull >= 65:
+    synthese_emoji, synthese_couleur = "📈", "success"
+    synthese_txt = f"**Configuration majoritairement HAUSSIÈRE** — {nb_bull} signaux verts sur {total} ({pct_bull:.0f}%). Les indicateurs convergent vers un biais acheteur. Aligné avec le setup recommandé : **{nom_setup}**."
+elif pct_bull <= 35:
+    synthese_emoji, synthese_couleur = "📉", "error"
+    synthese_txt = f"**Configuration majoritairement BAISSIÈRE** — {nb_bear} signaux rouges sur {total} ({(nb_bear/total)*100:.0f}%). Les indicateurs convergent vers un biais vendeur. Prudence pour entrer long."
+else:
+    synthese_emoji, synthese_couleur = "↔️", "warning"
+    synthese_txt = f"**Configuration MIXTE** — {nb_bull} haussiers / {nb_bear} baissiers / {nb_neutre} neutres. Aucune conviction nette, marché en transition. Attendre un signal plus tranché ou jouer en taille réduite."
+
+if synthese_couleur == "success":
+    st.success(f"{synthese_emoji} {synthese_txt}")
+elif synthese_couleur == "warning":
+    st.warning(f"{synthese_emoji} {synthese_txt}")
+else:
+    st.error(f"{synthese_emoji} {synthese_txt}")
+
+# ── DÉTAIL PAR CATÉGORIE ──
+syn_col1, syn_col2 = st.columns(2)
+with syn_col1:
+    st.markdown("#### 📊 Tendance")
+    for emoji, label, desc in analyses["tendance"]:
+        st.markdown(f"{emoji} **{label}** — {desc}")
+    st.markdown("#### ⚡ Momentum")
+    for emoji, label, desc in analyses["momentum"]:
+        st.markdown(f"{emoji} **{label}** — {desc}")
+
+with syn_col2:
+    st.markdown("#### 📐 Volatilité & Force")
+    for emoji, label, desc in analyses["volatilite"] + analyses["force"]:
+        st.markdown(f"{emoji} **{label}** — {desc}")
+
+    st.markdown("#### 🎯 Niveaux Clés")
+    st.markdown(f"• **VWAP 20j** : {infos['VWAP_20']:,.2f} $ — support/résistance dynamique")
+    st.markdown(f"• **MA50** : {infos['MA_50']:,.2f} $ — moyenne court/moyen terme")
+    if not pd.isna(infos.get('MA_200')):
+        st.markdown(f"• **MA200** : {infos['MA_200']:,.2f} $ — frontière régime")
+    st.markdown(f"• **Bollinger** : {infos['BB_Basse']:,.2f} $ ↔ {infos['BB_Haute']:,.2f} $")
+    if liste_supports:
+        st.markdown(f"• **Support le plus proche** : {liste_supports[-1]:,.2f} $")
+    if liste_resistances:
+        st.markdown(f"• **Résistance la plus proche** : {liste_resistances[-1]:,.2f} $")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 15. ACTUALITÉS
+# ══════════════════════════════════════════════════════════════════════════════
+
+st.markdown("---")
+st.header(f"📰 Actualités — {choix.split()[0]}")
+
+articles = charger_actualites(fiche['ticker_news'], fiche['coingecko_id'])
+
+for art in articles:
+    with st.container():
+        col_txt, col_btn = st.columns([4, 1])
+        with col_txt:
+            src_tag = f"  ·  {art.get('source', '')}" if art.get('source') else ""
+            date_tag = f"  ·  {art.get('date', '')}" if art.get('date') else ""
+            st.markdown(f"**{art.get('title', 'Article')[:120]}**")
+            body = art.get('body', '')[:250]
+            st.caption(f"{body}...{src_tag}{date_tag}" if len(art.get('body', '')) > 250 else f"{body}{src_tag}{date_tag}")
+        with col_btn:
+            if art.get('url'):
+                st.link_button("Lire ↗", art['url'])
+    st.markdown("<hr style='margin:4px 0; border-color: rgba(255,255,255,0.05)'>", unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 16. OUTILS D'ANALYSE ON-CHAIN & FONDAMENTALE
+# ══════════════════════════════════════════════════════════════════════════════
+
+st.markdown("---")
+st.header("🔬 Outils d'Analyse — Vérifier avant de se positionner")
+
+_tk = fiche['ticker_news']
+_cg = fiche['coingecko_id']
+
+st.info("""**Règle de vérification avant toute entrée :**
+1️⃣ **Déblocages** — un calendrier de vesting actif écrase le prix quels que soient les fondamentaux.
+2️⃣ **Revenus & TVL** — le capital suit les revenus, pas les narratifs. Compare `revenu 30j` entre protocoles.
+3️⃣ **Dilution (FDV vs Market Cap)** — un écart énorme = offre future massive à absorber.
+4️⃣ **Positionnement dérivés** — funding, OI et liquidations révèlent où est le levier.""")
+
+ot1, ot2, ot3 = st.columns(3)
+
+with ot1:
+    st.markdown(f"##### 📊 Fondamentaux — {_tk}")
+    st.link_button("DefiLlama — TVL & Revenus ↗", liens_defillama.get(_tk, "https://defillama.com/"),
+                   use_container_width=True)
+    st.link_button("CoinGecko — Fiche complète ↗", f"https://www.coingecko.com/en/coins/{_cg}",
+                   use_container_width=True)
+    st.link_button("Token Terminal — Valorisation ↗", "https://tokenterminal.com/explorer",
+                   use_container_width=True)
+    st.caption("Compare le revenu 30j et la TVL. Un protocole qui génère du revenu réel finit par être revalorisé.")
+
+with ot2:
+    st.markdown(f"##### 🔓 Déblocages & Offre — {_tk}")
+    st.link_button("Tokenomist — Vesting ↗", f"https://tokenomist.ai/{_cg}",
+                   use_container_width=True)
+    st.link_button("DefiLlama — Unlocks ↗", "https://defillama.com/unlocks",
+                   use_container_width=True)
+    st.link_button("DropsTab — Calendrier ↗", "https://dropstab.com/unlocks",
+                   use_container_width=True)
+    st.caption("⚠️ Le point le plus négligé. Vérifie TOUJOURS ceci avant d'entrer : une pression vendeuse mensuelle annule tout catalyseur.")
+
+with ot3:
+    st.markdown("##### 🐋 Whales & Flux")
+    st.link_button("Arkham — Entités & wallets ↗", "https://intel.arkm.com/",
+                   use_container_width=True)
+    st.link_button("Nansen — Smart Money ↗", "https://app.nansen.ai/",
+                   use_container_width=True)
+    st.link_button("Artemis — Flux inter-chaînes ↗", "https://app.artemis.xyz/",
+                   use_container_width=True)
+    st.caption("Suit l'argent intelligent et les rotations de capital entre écosystèmes.")
+
+ot4, ot5 = st.columns(2)
+
+with ot4:
+    st.markdown(f"##### ⚡ Dérivés & Levier — {_tk}")
+    st.link_button("CoinGlass — Funding & Liquidations ↗", f"https://www.coinglass.com/currencies/{_tk}",
+                   use_container_width=True)
+    st.link_button("CoinGlass — Carte de liquidation ↗", "https://www.coinglass.com/LiquidationData",
+                   use_container_width=True)
+    st.caption("Où se situent les clusters de liquidation = où le prix est aimanté.")
+
+with ot5:
+    _spec = liens_specifiques.get(_tk, [])
+    if _spec:
+        st.markdown(f"##### 🎯 Spécifique {_tk}")
+        for _label, _url in _spec:
+            st.link_button(f"{_label} ↗", _url, use_container_width=True)
+        if _tk == "HYPE":
+            st.caption("Hyperliquid = carnet d'ordres 100% on-chain : toutes les positions des whales sont publiques et consultables en direct.")
+    else:
+        st.markdown("##### 📰 Veille générale")
+        st.link_button("DefiLlama — Vue marché ↗", "https://defillama.com/", use_container_width=True)
+        st.link_button("CoinGecko — Global ↗", "https://www.coingecko.com/en/global-charts", use_container_width=True)
+        st.caption("Vue d'ensemble du marché et des flux de capitaux.")
+
+with st.expander("📚 Comment utiliser ces outils — méthode en 4 étapes"):
+    st.markdown("""
+**Étape 1 — Éliminer par les déblocages (Tokenomist / DefiLlama Unlocks)**
+Avant même de regarder un graphique, vérifie le calendrier de vesting. Un token avec des déblocages mensuels significatifs subit une pression vendeuse structurelle qu'aucun catalyseur ne compense. C'est le filtre le plus rentable et le plus ignoré.
+
+**Étape 2 — Qualifier par les revenus (DefiLlama / Token Terminal)**
+Regarde `Fees 30d` et `Revenue 30d`. Un protocole qui génère des revenus réels et croissants a une raison fondamentale d'être revalorisé. Compare aussi la **FDV vs Market Cap** : un écart énorme signifie que l'essentiel de l'offre reste à émettre.
+
+**Étape 3 — Confirmer par les flux (Arkham / Nansen / Artemis)**
+Le smart money accumule-t-il ou distribue-t-il ? Les capitaux entrent-ils dans l'écosystème ou en sortent-ils ? Une rotation de capital se voit dans les flux avant de se voir dans le prix.
+
+**Étape 4 — Timer par les dérivés (CoinGlass + ce terminal)**
+Funding, open interest et clusters de liquidation te disent où est le levier et où le prix risque d'être aspiré. Croise avec le setup recommandé par le moteur de ce terminal.
+
+---
+
+**Le principe directeur :** ce terminal te donne le *timing technique*. Ces outils te donnent la *validité fondamentale*. Un bon setup technique sur un actif structurellement condamné (dilution massive, revenus nuls) reste un mauvais trade.
+    """)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 17. LEXIQUE COMPLET
+# ══════════════════════════════════════════════════════════════════════════════
+
+with st.expander("📖 Lexique Complet des Indicateurs"):
+    st.markdown("""
+**RSI (Relative Strength Index)** : Oscillateur 0–100. <30 = survendu. >70 = suracheté. Calculé ici avec le lissage de Wilder.
+
+**MACD** : Différence entre EMA12 et EMA26. Croisement au-dessus de la ligne de signal = momentum haussier. L'histogramme montre l'accélération.
+
+**Bandes de Bollinger** : Enveloppe à ±2 écarts-types de la MA20. Prix sous la bande basse = excès statistique baissier.
+
+**ATR (Average True Range)** : Mesure la volatilité moyenne en valeur absolue. ATR% = ATR/Prix. Plus il est élevé, plus les stops doivent être larges.
+
+**ADX** : Mesure la force de la tendance, pas sa direction. >25 = tendance prononcée. <20 = range. +DI > −DI = tendance haussière. Inverse = baissière.
+
+**Stochastic RSI** : RSI appliqué à lui-même. %K et %D en zone basse (<20) = RSI lui-même est survendu → signal fort.
+
+**OBV (On-Balance Volume)** : Cumul du volume signé. OBV montant + prix stable = accumulation cachée. OBV descendant + prix stable = distribution.
+
+**Ichimoku** : Système complet. Prix au-dessus du nuage = haussier. Tenkan > Kijun = momentum positif. Nuage vert (Senkou A > B) = tendance haussière.
+
+**Fibonacci** : Niveaux de retracement calculés sur le swing haut/bas des 100 dernières bougies. 61.8% et 38.2% sont les zones de rebond les plus fréquentes.
+
+**VWAP** : Prix moyen pondéré par le volume. Référence institutionnelle. Prix sous le VWAP = on achète « moins cher que la moyenne du marché ».
+
+**Funding Rate** : Coût payé toutes les 8h entre longs et shorts sur les perpétuels. >0.05% = surchauffe acheteuse.
+
+**Long/Short Ratio** : Ratio des positions longues/courtes des top traders. <0.85 = carburant de short squeeze.
+
+**Δ OI** : Variation de l'Open Interest. Chute brutale = liquidations passées (purge saine).
+    """)
+
+# ── Footer ──
+st.markdown("---")
+st.caption(f"Terminal Crypto Pro v2 — Dernière mise à jour : {datetime.now().strftime('%d/%m/%Y %H:%M')} — Données : Binance, CoinGecko, CryptoCompare, Alternative.me")
+st.caption("⚠️ Cet outil est un support d'analyse. Il ne constitue en aucun cas un conseil financier.")
